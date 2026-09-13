@@ -2,25 +2,59 @@
   "name": "fintech-frontend",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=20.19.0 <21 || >=22.0.0 <23"
+  },
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint"
+    "dev": "npx -y node@20 ./node_modules/next/dist/bin/next dev -p 3002",
+    "build": "npx -y node@20 ./node_modules/next/dist/bin/next build",
+    "start": "npx -y node@20 ./node_modules/next/dist/bin/next start -p 3002",
+    "lint": "npx -y node@20 ./node_modules/eslint/bin/eslint.js .",
+    "test": "npx -y node@20 ./node_modules/vitest/vitest.mjs run",
+    "test:watch": "npx -y node@20 ./node_modules/vitest/vitest.mjs",
+    "storybook": "npx -y node@20 ./node_modules/storybook/bin/index.cjs dev -p 6006",
+    "build-storybook": "npx -y node@20 ./node_modules/storybook/bin/index.cjs build",
+    "e2e": "npx -y node@20 ./node_modules/playwright/cli.js test",
+    "openapi:types": "npx -y node@20 ./node_modules/openapi-typescript/bin/cli.mjs http://localhost:3000/openapi.json -o src/lib/api/generated.ts"
   },
   "dependencies": {
+    "@hookform/resolvers": "^5.9.1",
+    "@radix-ui/react-checkbox": "^1.3.11",
+    "@radix-ui/react-label": "^2.1.15",
+    "@radix-ui/react-slot": "^1.3.3",
+    "@tanstack/react-query": "^5.102.8",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "framer-motion": "^13.1.1",
+    "lucide-react": "^1.37.0",
     "next": "16.3.3",
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "react-hook-form": "^7.86.0",
+    "tailwind-merge": "^3.6.0",
+    "zod": "^4.5.2",
+    "zustand": "^5.0.15"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.1",
+    "@storybook/addon-essentials": "^8.6.14",
+    "@storybook/addon-interactions": "^8.6.14",
+    "@storybook/addon-themes": "^10.5.10",
+    "@storybook/nextjs": "^10.5.10",
     "@tailwindcss/postcss": "^4",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.3",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitest/coverage-v8": "^4.1.11",
     "eslint": "^9",
     "eslint-config-next": "16.3.3",
+    "jsdom": "^29.1.1",
+    "openapi-typescript": "^7.13.0",
+    "playwright": "^1.62.1",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.11"
   }
 }
