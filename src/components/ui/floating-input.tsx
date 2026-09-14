@@ -30,7 +30,8 @@ export const FloatingInput = React.forwardRef<HTMLInputElement, FloatingInputPro
     const [hasValue, setHasValue] = React.useState(
       Boolean(props.value ?? props.defaultValue),
     );
-    const inputId = id ?? React.useId();
+    const generatedId = React.useId();
+    const inputId = id ?? generatedId;
     const floated = focused || hasValue;
 
     return (

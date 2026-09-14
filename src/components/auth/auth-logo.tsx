@@ -5,7 +5,7 @@ export function AuthLogo() {
         <span className="absolute left-1.5 top-1.5 h-4 w-4 rounded-full bg-white" />
         <span className="absolute right-1.5 bottom-1.5 h-4 w-4 rounded-full bg-[#72d1ff]" />
       </div>
-      <span className="text-[1.7rem] font-semibold tracking-[-0.05em] text-white">Coinbit</span>
+      <span className="text-[1.7rem] font-semibold tracking-[-0.05em] text-white">Veyra</span>
     </div>
   );
 }

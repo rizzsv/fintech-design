@@ -1,16 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
-import { Check, CheckCircle2, Loader2 } from "lucide-react";
+import { ArrowRight, Check, CheckCircle2, Loader2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 
-import { AuthBackground } from "@/components/auth/auth-background";
-import { AuthLogo } from "@/components/auth/auth-logo";
+import { AnimatedNetwork } from "@/components/auth/animated-network";
 import { AuthField } from "@/components/ui/auth-field";
 import { authApi } from "@/features/auth/api";
 import { loginSchema, registerSchema } from "@/features/auth/schemas";
@@ -23,7 +21,7 @@ const socialButtons = [
 
 export function AuthShell() {
   const router = useRouter();
-  const [isLogin, setIsLogin] = useState(false);
+  const [isLogin, setIsLogin] = useState(true);
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [submitMessage, setSubmitMessage] = useState("");
@@ -66,7 +64,7 @@ export function AuthShell() {
         lastName: payload.lastName ? String(payload.lastName) : undefined,
       });
     },
-    onSuccess: (data, _variables) => {
+    onSuccess: (data) => {
       if (isLogin && "accessToken" in data && "refreshToken" in data) {
         setTokens(data.accessToken, data.refreshToken);
         setSubmitMessage("Login successful");
@@ -95,108 +93,93 @@ export function AuthShell() {
   const formErrors = form.formState.errors;
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden p-3 sm:p-8">
-      <AuthBackground />
-
+    <div className="relative flex min-h-screen items-center justify-center overflow-x-hidden overflow-y-auto bg-gradient-to-br from-primary/5 to-primary/10 px-4 py-8 sm:px-6 md:px-8">
       <motion.div
-        initial={{ opacity: 0, y: 18 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.55, ease: [0.4, 0, 0.2, 1] }}
-        className="relative z-10 w-full max-w-[1220px] rounded-[34px] border border-white/30 shadow-[0_40px_80px_rgba(12,39,97,0.25)]"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.3, ease: [0.34, 1.56, 0.64, 1] }}
+        className="relative z-10 mx-auto flex min-h-[680px] w-full max-w-7xl overflow-hidden rounded-3xl bg-white shadow-2xl md:min-h-[calc(100vh-4rem)] md:flex-row"
       >
-        <div className="grid min-h-[700px] overflow-hidden rounded-[28px] bg-transparent md:grid-cols-[1.12fr_0.88fr]">
-          <div className="relative overflow-hidden bg-[#0b5fe0] px-6 pb-8 pt-7 md:px-8 md:pb-10 md:pt-8">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_12%,rgba(255,255,255,0.15),transparent_28%),radial-gradient(circle_at_72%_30%,rgba(255,255,255,0.12),transparent_35%)]" />
-            <div className="absolute -right-20 top-[-65px] h-[220px] w-[220px] rounded-full bg-[#0e3d9d]/15 blur-3xl" />
-            <div className="absolute -left-20 bottom-[-65px] h-[220px] w-[220px] rounded-full bg-[#0d54c9]/30 blur-3xl" />
-
-            <div className="relative z-10 flex h-full flex-col">
-              <div className="pl-1">
-                <AuthLogo />
-              </div>
-
-              <div className="relative mt-8 flex flex-1 items-end justify-center">
-                <motion.div
-                  animate={{ y: [0, -10, 0] }}
-                  transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-                  className="relative w-full max-w-[580px] rounded-[24px] border border-white/25 bg-white/95 p-4 shadow-[0_24px_52px_rgba(17,37,85,0.25)]"
-                >
-                  <Image
-                    src="/animation_for_auth.png"
-                    alt="Auth statistics preview"
-                    width={620}
-                    height={440}
-                    priority
-                    className="h-auto w-full rounded-[18px] object-cover"
-                  />
-                </motion.div>
-              </div>
-
-              <div className="relative z-10 mt-7 flex flex-col items-center text-center text-[#dfeafc]">
-                <p className="text-[0.92rem] font-medium text-white/90">Trusted thousands of finance teams and employees</p>
-                <div className="mt-3 flex flex-wrap items-center justify-center gap-4 text-sm font-medium text-white/80">
-                  <span className="flex items-center gap-2">
-                    <span className="h-2.5 w-2.5 rounded-full bg-[#2ec4ff]" />
-                    coindesk
-                  </span>
-                  <span className="flex items-center gap-2">
-                    <span className="h-2.5 w-2.5 rounded-full bg-[#d9d9d9]" />
-                    Coinbase
-                  </span>
-                  <span className="flex items-center gap-2">
-                    <span className="h-2.5 w-2.5 rounded-full bg-[#f8b334]" />
-                    Crypto Valley
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-center bg-[#f5f5f5] px-6 py-8 sm:px-10 md:px-12">
+        {/* Left Panel - Animated Network (hidden on mobile/tablet) */}
+        <div className="relative hidden min-h-[680px] w-1/2 flex-col items-center justify-center overflow-hidden bg-gradient-to-br from-primary/10 to-primary/5 px-8 md:flex">
+          <AnimatedNetwork />
+          
+          <div className="relative z-10 w-full max-w-md text-center">
             <motion.div
-              key={isLogin ? "login" : "register"}
-              initial={{ opacity: 0, x: 12 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.35 }}
-              className="w-full max-w-[430px]"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.2 }}
             >
-              <h2 className="text-[2.1rem] font-semibold tracking-[-0.05em] text-slate-900">
-                {isLogin ? "Welcome back" : "Create your free account"}
-              </h2>
-
-              <p className="mt-2 text-sm text-slate-500">
-                {isLogin ? "Enter your details to sign in." : "Already using Coinbit? "}
-                {!isLogin && (
-                  <button
-                    type="button"
-                    onClick={() => setIsLogin(true)}
-                    className="font-medium text-[#0d69e7] hover:underline"
-                  >
-                    Login here.
-                  </button>
-                )}
+              <h1 className="text-4xl font-bold leading-tight text-primary">Veyra</h1>
+              <p className="mx-auto mt-4 max-w-sm text-center text-base leading-6 text-muted-foreground">
+                Sign in to access your financial dashboard and manage your transactions securely
               </p>
+            </motion.div>
+          </div>
+        </div>
 
-              <form onSubmit={onSubmit} className="mt-7 space-y-4">
-                <AnimatePresence mode="popLayout">
-                  {!isLogin && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className="overflow-hidden"
-                    >
-                      <AuthField
-                        label="Name"
-                        placeholder="Nikoloz Narsia"
-                        error={formErrors.firstName?.message || formErrors.lastName?.message}
-                        {...form.register("firstName")}
-                      />
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+        {/* Right Panel - Form */}
+        <div className="flex w-full items-center justify-center bg-white px-6 py-12 sm:px-10 md:min-h-[680px] md:w-1/2 md:px-12 md:py-16">
+          <motion.div
+            key={isLogin ? "login" : "register"}
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.3, ease: [0.34, 1, 0.64, 1] }}
+            className="w-full max-w-[430px]"
+          >
+            <motion.h2
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.1 }}
+              className="text-2xl font-bold leading-tight tracking-tight text-foreground md:text-[28px]"
+            >
+              {isLogin ? "Welcome back" : "Create your free account"}
+            </motion.h2>
 
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.15 }}
+              className="mt-2 max-w-full text-sm leading-6 text-muted-foreground md:text-base"
+            >
+              {isLogin ? "Sign in to your account" : "Already using Veyra? "}
+              {!isLogin && (
+                <button
+                  type="button"
+                  onClick={() => setIsLogin(true)}
+                  className="font-semibold text-primary transition-colors hover:text-primary/80 hover:underline"
+                >
+                  Login here.
+                </button>
+              )}
+            </motion.p>
+
+            <form onSubmit={onSubmit} className="mt-8 space-y-4">
+              <AnimatePresence mode="popLayout">
                 {!isLogin && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="overflow-hidden"
+                  >
+                    <AuthField
+                      label="Name"
+                      placeholder="John Doe"
+                      error={formErrors.firstName?.message || formErrors.lastName?.message}
+                      {...form.register("firstName")}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {!isLogin && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.25 }}
+                >
                   <AuthField
                     label="Phone number"
                     type="tel"
@@ -204,28 +187,28 @@ export function AuthShell() {
                     error={formErrors.phoneNumber?.message}
                     {...form.register("phoneNumber")}
                   />
-                )}
+                </motion.div>
+              )}
 
-                {isLogin && (
-                  <AuthField
-                    label="Email"
-                    type="email"
-                    placeholder="Enter email"
-                    error={formErrors.email?.message}
-                    {...form.register("email")}
-                  />
-                )}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: isLogin ? 0.2 : 0.3 }}
+              >
+                <AuthField
+                  label="Email"
+                  type="email"
+                  placeholder="you@example.com"
+                  error={formErrors.email?.message}
+                  {...form.register("email")}
+                />
+              </motion.div>
 
-                {!isLogin && (
-                  <AuthField
-                    label="Email"
-                    type="email"
-                    placeholder="nikoloznarsia@"
-                    error={formErrors.email?.message}
-                    {...form.register("email")}
-                  />
-                )}
-
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: isLogin ? 0.25 : 0.35 }}
+              >
                 <AuthField
                   label="Password"
                   type="password"
@@ -233,128 +216,167 @@ export function AuthShell() {
                   error={formErrors.password?.message}
                   {...form.register("password")}
                 />
+              </motion.div>
 
-                {!isLogin && (
-                  <label className="flex cursor-pointer items-center gap-2.5 pt-1 text-sm text-slate-600">
+              {!isLogin && (
+                <motion.label
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.4 }}
+                  className="flex cursor-pointer flex-wrap items-center gap-2.5 pt-1 text-sm leading-5 text-muted-foreground"
+                >
+                  <button
+                    type="button"
+                    aria-label="Accept terms and conditions"
+                    onClick={() => setAgreeTerms((v) => !v)}
+                    className={cn(
+                      "flex h-5 w-5 items-center justify-center rounded border transition-colors duration-150",
+                      agreeTerms ? "border-primary bg-primary" : "border-input bg-background",
+                    )}
+                  >
+                    {agreeTerms && <Check className="h-3 w-3 text-white" strokeWidth={3} />}
+                  </button>
+                  I agree to the <span className="font-semibold text-foreground">Terms & Conditions</span>
+                </motion.label>
+              )}
+
+              {isLogin && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.3 }}
+                  className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 pt-1"
+                >
+                  <label className="flex cursor-pointer items-center gap-2.5 text-sm leading-5 text-muted-foreground">
                     <button
                       type="button"
-                      aria-label="Accept terms and conditions"
-                      onClick={() => setAgreeTerms((v) => !v)}
+                      aria-label="Remember me"
+                      onClick={() => setRememberMe((v) => !v)}
                       className={cn(
-                        "flex h-[18px] w-[18px] items-center justify-center rounded border border-slate-300 bg-white transition-colors",
-                        agreeTerms && "border-[#0d69e7] bg-[#0d69e7]",
+                        "flex h-5 w-5 items-center justify-center rounded border transition-colors duration-150",
+                        rememberMe ? "border-primary bg-primary" : "border-input bg-background",
                       )}
                     >
-                      {agreeTerms && <Check className="h-3 w-3 text-white" strokeWidth={3} />}
+                      {rememberMe && <Check className="h-3 w-3 text-white" strokeWidth={3} />}
                     </button>
-                    I agree to the <span className="font-medium text-slate-700">Terms & Conditions</span>
+                    Remember me
                   </label>
+                  <button
+                    type="button"
+                    className="text-sm font-semibold text-primary transition-colors hover:text-primary/80 hover:underline"
+                  >
+                    Forgot password?
+                  </button>
+                </motion.div>
+              )}
+
+              <AnimatePresence mode="wait">
+                {submitError && (
+                  <motion.p
+                    key="error"
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, transition: { duration: 0.15 } }}
+                    transition={{ duration: 0.2 }}
+                    className="rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700"
+                  >
+                    {submitError}
+                  </motion.p>
                 )}
-
-                {isLogin && (
-                  <div className="flex items-center justify-between pt-1">
-                    <label className="flex cursor-pointer items-center gap-2.5 text-sm text-slate-600">
-                      <button
-                        type="button"
-                        aria-label="Remember me"
-                        onClick={() => setRememberMe((v) => !v)}
-                        className={cn(
-                          "flex h-[18px] w-[18px] items-center justify-center rounded border border-slate-300 bg-white transition-colors",
-                          rememberMe && "border-[#0d69e7] bg-[#0d69e7]",
-                        )}
-                      >
-                        {rememberMe && <Check className="h-3 w-3 text-white" strokeWidth={3} />}
-                      </button>
-                      Remember me
-                    </label>
-                    <button type="button" className="text-sm font-medium text-[#0d69e7] hover:underline">
-                      Forgot password?
-                    </button>
-                  </div>
+                {submitMessage && (
+                  <motion.div
+                    key="success"
+                    initial={{ opacity: 0, scale: 0.96 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, transition: { duration: 0.15 } }}
+                    transition={{ duration: 0.2 }}
+                    className="flex items-center gap-2.5 rounded-xl bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800"
+                  >
+                    <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
+                    {submitMessage}
+                  </motion.div>
                 )}
+              </AnimatePresence>
 
-                <AnimatePresence mode="wait">
-                  {submitError && (
-                    <motion.p
-                      key="error"
-                      initial={{ opacity: 0, y: -6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0 }}
-                      className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-600"
-                    >
-                      {submitError}
-                    </motion.p>
-                  )}
-                  {submitMessage && (
-                    <motion.div
-                      key="success"
-                      initial={{ opacity: 0, scale: 0.97 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="flex items-center gap-2 rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-700"
-                    >
-                      <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
-                      {submitMessage}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+              <motion.button
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: isLogin ? 0.35 : 0.45 }}
+                type="submit"
+                disabled={mutation.isPending}
+                whileHover={{ scale: mutation.isPending ? 1 : 1.02 }}
+                whileTap={{ scale: mutation.isPending ? 1 : 0.96 }}
+                className="mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary text-sm font-semibold text-primary-foreground shadow-md transition-all duration-200 hover:bg-primary/90 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-none md:text-base"
+              >
+                {mutation.isPending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Please wait...
+                  </>
+                ) : (
+                  <>
+                    Sign in
+                    <ArrowRight className="h-4 w-4" />
+                  </>
+                )}
+              </motion.button>
+            </form>
 
-                <button
-                  type="submit"
-                  disabled={mutation.isPending}
-                  className="mt-2 flex h-[54px] w-full items-center justify-center rounded-[14px] bg-[#0d5fe5] text-base font-semibold text-white shadow-[0_12px_28px_rgba(13,95,229,0.3)] transition duration-200 hover:bg-[#0b54d1] disabled:cursor-not-allowed disabled:opacity-70"
-                >
-                  {mutation.isPending ? (
-                    <span className="flex items-center gap-2">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Please wait...
-                    </span>
-                  ) : isLogin ? (
-                    "Get Started"
-                  ) : (
-                    "Get Started"
-                  )}
-                </button>
-              </form>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.4 }}
+              className="mt-6"
+            >
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-border" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-white px-2 text-muted-foreground">or</span>
+                </div>
+              </div>
 
-              <div className="mt-5 flex items-center justify-center gap-4">
-                {socialButtons.map(({ mark, label, bg, tone }) => (
+              <div className="mt-6 flex items-center justify-center gap-4">
+                {socialButtons.map(({ mark, label }) => (
                   <motion.button
                     key={label}
                     type="button"
                     aria-label={label}
-                    whileHover={{ scale: 1.04, y: -1 }}
+                    whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    className={cn(
-                      "flex h-[52px] w-full items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white text-base font-medium text-slate-700 shadow-sm",
-                      bg,
-                      tone,
-                    )}
+                    transition={{ duration: 0.15 }}
+                    className="flex h-11 w-full items-center justify-center gap-3 rounded-xl border border-input bg-background text-sm font-medium text-foreground shadow-sm transition-shadow hover:shadow-md"
                   >
-                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-[#4285F4] via-[#34A853] to-[#EA4335] text-[0.7rem] font-bold text-white">
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-br from-[#4285F4] via-[#34A853] to-[#EA4335] text-[0.65rem] font-bold text-white">
                       {mark}
                     </span>
                     {label}
                   </motion.button>
                 ))}
               </div>
-
-              <p className="mt-6 text-center text-sm text-slate-500">
-                {isLogin ? "Don’t have an account?" : "Already have an account?"}{" "}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsLogin((v) => !v);
-                    setSubmitError("");
-                    setSubmitMessage("");
-                  }}
-                  className="font-semibold text-[#0d69e7] hover:underline"
-                >
-                  {isLogin ? "Create account" : "Sign in"}
-                </button>
-              </p>
             </motion.div>
-          </div>
+
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5 }}
+              className="mt-8 text-center text-sm text-muted-foreground"
+            >
+              {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
+              <button
+                type="button"
+                onClick={() => {
+                  setIsLogin((v) => !v);
+                  setSubmitError("");
+                  setSubmitMessage("");
+                }}
+                className="font-bold text-primary transition-colors hover:text-primary/80 hover:underline"
+              >
+                {isLogin ? "Create account" : "Sign in"}
+              </button>
+            </motion.p>
+          </motion.div>
         </div>
       </motion.div>
     </div>

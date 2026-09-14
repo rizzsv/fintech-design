@@ -165,7 +165,7 @@ export function AuthShell() {
               </h2>
 
               <p className="mt-2 text-sm text-slate-500">
-                {isLogin ? "Enter your details to sign in." : "Already using Coinbit? "}
+                {isLogin ? "Enter your details to sign in." : "Already using Veyra? "}
                 {!isLogin && (
                   <button
                     type="button"
