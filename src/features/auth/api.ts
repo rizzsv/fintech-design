@@ -51,4 +51,5 @@ async function request<T>(path: string, body: object | undefined, method: "POST"
 export const authApi = {
   login: (payload: LoginPayload) => request<LoginResponse>("/auth/login", payload),
   register: (payload: RegisterPayload) => request<RegisterResponse>("/auth/register", payload),
+  logout: (refreshToken: string) => request<null>("/auth/logout", { refreshToken }),
 };

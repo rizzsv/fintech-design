@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
@@ -16,7 +17,7 @@ import { cn } from "@/utils/cn";
 import { useAuthStore } from "@/store/auth-store";
 
 const socialButtons = [
-  { mark: "G", label: "Google", bg: "bg-white", tone: "text-[#000000]" },
+  { label: "Google", bg: "bg-white", tone: "text-[#000000]" },
 ];
 
 export function AuthShell() {
@@ -306,7 +307,7 @@ export function AuthShell() {
                 disabled={mutation.isPending}
                 whileHover={{ scale: mutation.isPending ? 1 : 1.02 }}
                 whileTap={{ scale: mutation.isPending ? 1 : 0.96 }}
-                className="mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary text-sm font-semibold text-primary-foreground shadow-md transition-all duration-200 hover:bg-primary/90 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-none md:text-base"
+                className="mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary text-sm font-semibold text-white shadow-md transition-all duration-200 hover:bg-primary/90 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-none md:text-base"
               >
                 {mutation.isPending ? (
                   <>
@@ -338,7 +339,7 @@ export function AuthShell() {
               </div>
 
               <div className="mt-6 flex items-center justify-center gap-4">
-                {socialButtons.map(({ mark, label }) => (
+                {socialButtons.map(({ label }) => (
                   <motion.button
                     key={label}
                     type="button"
@@ -348,9 +349,13 @@ export function AuthShell() {
                     transition={{ duration: 0.15 }}
                     className="flex h-11 w-full items-center justify-center gap-3 rounded-xl border border-input bg-background text-sm font-medium text-foreground shadow-sm transition-shadow hover:shadow-md"
                   >
-                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-br from-[#4285F4] via-[#34A853] to-[#EA4335] text-[0.65rem] font-bold text-white">
-                      {mark}
-                    </span>
+                    <Image
+                      src="/google-icon-logo-svgrepo-com.svg"
+                      alt=""
+                      width={20}
+                      height={20}
+                      className="h-5 w-5"
+                    />
                     {label}
                   </motion.button>
                 ))}

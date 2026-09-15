@@ -2,25 +2,17 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, BarChart3, Bell, BriefcaseBusiness, CheckCircle2, Copy, ExternalLink, Home, Search, Send, Settings, Wallet2 } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Copy, ExternalLink } from "lucide-react";
 
 import { dashboardApi } from "@/features/dashboard/api";
 import type { MeResponse, TopUpPaymentResponse, WalletResponse } from "@/features/dashboard/types";
+import { DashboardTopBar } from "@/components/dashboard/dashboard-top-bar";
 
 const paymentMethods = [
   { value: "qris", label: "QRIS", description: "Scan and pay with any supported wallet" },
   { value: "gopay", label: "GoPay", description: "Pay directly from your GoPay balance" },
   { value: "bank_transfer", label: "Bank transfer", description: "Use your preferred bank" },
   { value: "shopeepay", label: "ShopeePay", description: "Pay from ShopeePay" },
-];
-
-const navItems = [
-  { icon: Home, path: "/dashboard", label: "Home" },
-  { icon: BarChart3, path: "/analysis", label: "Analysis" },
-  { icon: Wallet2, path: "/topup", label: "Top up" },
-  { icon: Send, path: "/transfer", label: "Transfer" },
-  { icon: BriefcaseBusiness, path: "/dashboard", label: "Business" },
-  { icon: Settings, path: "/dashboard", label: "Settings" },
 ];
 
 function formatCurrency(value: number | string) {
@@ -91,30 +83,10 @@ export default function TopUpPage() {
   const name = `${profile?.firstName ?? ""} ${profile?.lastName ?? ""}`.trim() || "User";
 
   return (
-    <div className="min-h-screen bg-[#cfe6f8] p-2 sm:p-3 md:p-4">
-      <div className="flex min-h-[calc(100vh-1rem)] w-full overflow-hidden rounded-[30px] border border-slate-200/70 bg-[#f4f7fb] shadow-[0_30px_80px_rgba(17,44,100,0.15)] sm:min-h-[calc(100vh-1.5rem)] md:min-h-[calc(100vh-2rem)]">
-        <aside className="flex w-[92px] shrink-0 flex-col items-center justify-between bg-[#0e2a5c] py-8 text-white">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-xl font-bold">P</div>
-          <nav className="mt-8 flex flex-col gap-4">
-            {navItems.map(({ icon: Icon, path, label }) => (
-              <button key={label} type="button" onClick={() => router.push(path)} aria-label={label} className={`flex h-12 w-12 items-center justify-center rounded-xl ${label === "Top up" ? "bg-white/12 text-white" : "text-white/70 hover:bg-white/6"}`}>
-                <Icon className="h-5 w-5" />
-              </button>
-            ))}
-          </nav>
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-lg font-semibold">{name.charAt(0).toUpperCase()}</div>
-        </aside>
-
-        <main className="min-w-0 flex-1 px-6 py-6">
-          <div className="mb-6 flex items-center justify-between gap-4">
-            <div className="flex flex-1 items-center gap-3 rounded-2xl border border-slate-200 bg-white/70 px-4 py-3 shadow-sm">
-              <Search className="h-4 w-4 text-slate-400" />
-              <span className="text-sm text-slate-500">Wallet top up</span>
-            </div>
-            <button type="button" className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600" aria-label="Notifications">
-              <Bell className="h-4 w-4" />
-            </button>
-          </div>
+    <div className="min-h-screen bg-[#ededed] grayscale">
+      <div className="min-h-screen w-full bg-white">
+        <main className="min-h-screen min-w-0 flex-1 px-4 py-4 sm:px-6 sm:py-5">
+          <DashboardTopBar userInitial={name.charAt(0)} />
 
           <div className="mb-6 flex items-center gap-3">
             <button type="button" onClick={() => router.push("/dashboard")} className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 hover:text-[#0e2a5c]" aria-label="Back to dashboard">

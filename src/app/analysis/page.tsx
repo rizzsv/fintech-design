@@ -6,27 +6,14 @@ import {
   ArrowDownLeft,
   ArrowLeft,
   ArrowUpRight,
-  BarChart3,
   BriefcaseBusiness,
   CheckCircle2,
-  Home,
-  Settings,
-  Send,
-  Wallet2,
   X,
 } from "lucide-react";
 
 import { dashboardApi } from "@/features/dashboard/api";
 import type { TransactionDetail, TransactionItem, WalletResponse } from "@/features/dashboard/types";
-
-const navItems = [
-  { icon: Home, path: "/dashboard", label: "Home" },
-  { icon: BarChart3, path: "/analysis", label: "Analysis" },
-  { icon: Wallet2, path: "/topup", label: "Top up" },
-  { icon: Send, path: "/transfer", label: "Transfer" },
-  { icon: BriefcaseBusiness, path: "/dashboard", label: "Business" },
-  { icon: Settings, path: "/dashboard", label: "Settings" },
-];
+import { DashboardTopBar } from "@/components/dashboard/dashboard-top-bar";
 
 function formatCurrency(value: number | string) {
   return new Intl.NumberFormat("id-ID", {
@@ -105,30 +92,11 @@ export default function AnalysisPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#cfe6f8] p-2 sm:p-3 md:p-4">
-      <div className="flex min-h-[calc(100vh-1rem)] w-full overflow-hidden rounded-[30px] border border-slate-200/70 bg-[#f4f7fb] shadow-[0_30px_80px_rgba(17,44,100,0.15)] sm:min-h-[calc(100vh-1.5rem)] md:min-h-[calc(100vh-2rem)]">
-        <aside className="flex w-[92px] flex-col items-center justify-between bg-[#0e2a5c] py-8 text-white">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-xl font-bold">P</div>
-          <nav className="mt-8 flex flex-col gap-4">
-            {navItems.map(({ icon: Icon, path, label }, index) => (
-              <button
-                key={label}
-                type="button"
-                onClick={() => router.push(path)}
-                aria-label={label}
-                className={`flex h-12 w-12 items-center justify-center rounded-xl ${index === 1 ? "bg-white/12 text-white" : "text-white/70 hover:bg-white/6"}`}
-              >
-                <Icon className="h-5 w-5" />
-              </button>
-            ))}
-          </nav>
-          <button type="button" onClick={() => router.push("/dashboard")} className="flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-white/80" aria-label="Back to dashboard">
-            <ArrowLeft className="h-5 w-5" />
-          </button>
-        </aside>
-
-        <main className="flex-1 p-6 md:p-8">
-          <header className="mb-8 flex items-start justify-between gap-4">
+    <div className="min-h-screen bg-[#ededed] grayscale">
+      <div className="min-h-screen w-full bg-white">
+        <main className="min-h-screen flex-1 px-4 py-4 sm:px-6 sm:py-5">
+          <DashboardTopBar userInitial="U" />
+          <header className="mb-6 flex items-start justify-between gap-4 border-b border-slate-200 pb-4">
             <div>
               <p className="mb-2 text-sm font-medium text-sky-600">Financial overview</p>
               <h1 className="text-3xl font-semibold text-slate-800">Mutasi Rekening</h1>

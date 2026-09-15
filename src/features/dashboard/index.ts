@@ -1,9 +1,7 @@
 export { dashboardApi } from "./api";
 export type {
-  DashboardKyc,
   DashboardLimits,
   DashboardResponse,
-  DashboardSecurity,
   DashboardTransaction,
   DashboardUser,
   DashboardWallet,

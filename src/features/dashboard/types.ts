@@ -1,14 +1,96 @@
 export interface DashboardUser {
   id: string;
-  firstName: string;
-  lastName: string;
+  firstName: string | null;
+  lastName: string | null;
   email: string;
-  emailVerified: boolean;
 }
 
 export interface DashboardWallet {
-  balance: number;
+  balance: string;
   currency: string;
+  isFrozen: boolean;
+  walletStatus: "ACTIVE" | "FROZEN";
+}
+
+export interface KycInfo {
+  status: string;
+  tier: string;
+}
+
+export interface AccountActions {
+  canTopUp: boolean;
+  canTransfer: boolean;
+  canWithdraw: boolean;
+}
+
+export interface DashboardAccountOverview {
+  isActive: boolean;
+  isEmailVerified: boolean;
+  kyc: KycInfo;
+  actions: AccountActions;
+}
+
+export interface MonthlyStatisticsPeriod {
+  type: string;
+  startDate: string;
+  endDate: string;
+}
+
+export interface DashboardMonthlyStatistics {
+  period: MonthlyStatisticsPeriod;
+  totalTopUp: string;
+  totalTransfer: string;
+  totalWithdrawal: string;
+}
+
+export interface CashFlowSeriesItem {
+  date: string;
+  income: string;
+  expense: string;
+  net: string;
+}
+
+export interface DashboardCashFlow {
+  period: string;
+  income: string;
+  expense: string;
+  net: string;
+  currency: string;
+  series: CashFlowSeriesItem[];
+}
+
+export interface LimitDetail {
+  limit: string;
+  used: string;
+  remaining: string;
+  percentageUsed: number;
+}
+
+export interface DashboardLimits {
+  dailyTransfer: LimitDetail;
+  monthlyTransfer: LimitDetail;
+}
+
+export interface RecentTransaction {
+  id: string;
+  type: string;
+  description: string | null;
+  amount: string;
+  currency: string;
+  direction: "INCOME" | "EXPENSE";
+  status: string;
+  reference: string | null;
+  createdAt: string;
+}
+
+export interface PendingActivity {
+  id: string;
+  type: string;
+  description: string | null;
+  amount: string;
+  currency: string;
+  status: string;
+  createdAt: string;
 }
 
 export interface WalletResponse {
@@ -51,28 +133,7 @@ export interface TransferResponse {
   createdAt: string;
 }
 
-export interface DashboardLimits {
-  dailyTransfer: {
-    limit: number;
-    used: number;
-    remaining: number;
-  };
-  monthlyTransfer: {
-    limit: number;
-    used: number;
-    remaining: number;
-  };
-}
 
-export interface DashboardKyc {
-  status: string;
-  tier: string;
-}
-
-export interface DashboardSecurity {
-  emailVerified: boolean;
-  twoFactorEnabled: boolean;
-}
 
 export interface DashboardTransaction {
   id?: string;
@@ -119,10 +180,12 @@ export interface TransactionDetail extends TransactionItem {
 export interface DashboardResponse {
   user: DashboardUser;
   wallet: DashboardWallet;
+  accountOverview: DashboardAccountOverview;
+  monthlyStatistics: DashboardMonthlyStatistics;
+  cashFlow: DashboardCashFlow;
   limits: DashboardLimits;
-  kyc: DashboardKyc;
-  security: DashboardSecurity;
-  recentTransactions: DashboardTransaction[];
+  recentTransactions: RecentTransaction[];
+  pendingActivities: PendingActivity[];
 }
 
 export interface MeResponse {

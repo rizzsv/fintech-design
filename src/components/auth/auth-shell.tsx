@@ -18,7 +18,7 @@ import { cn } from "@/utils/cn";
 import { useAuthStore } from "@/store/auth-store";
 
 const socialButtons = [
-  { mark: "G", label: "Google", bg: "bg-white", tone: "text-[#000000]" },
+  { label: "Google", bg: "bg-white", tone: "text-[#000000]" },
 ];
 
 export function AuthShell() {
@@ -318,7 +318,7 @@ export function AuthShell() {
               </form>
 
               <div className="mt-5 flex items-center justify-center gap-4">
-                {socialButtons.map(({ mark, label, bg, tone }) => (
+                {socialButtons.map(({ label, bg, tone }) => (
                   <motion.button
                     key={label}
                     type="button"
@@ -331,9 +331,13 @@ export function AuthShell() {
                       tone,
                     )}
                   >
-                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-[#4285F4] via-[#34A853] to-[#EA4335] text-[0.7rem] font-bold text-white">
-                      {mark}
-                    </span>
+                    <Image
+                      src="/google-icon-logo-svgrepo-com.svg"
+                      alt=""
+                      width={20}
+                      height={20}
+                      className="h-5 w-5"
+                    />
                     {label}
                   </motion.button>
                 ))}

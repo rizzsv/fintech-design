@@ -1,18 +1,18 @@
 @import "tailwindcss";
 
 :root {
-  --background: #eaeaea;
-  --foreground: #1f2b3d;
-  --primary: #0a5cc8;
-  --primary-dark: #0f43a7;
-  --primary-light: #3c8dff;
-  --accent: #ff9d3d;
-  --accent-cyan: #5dd7ff;
-  --accent-purple: #7c4dff;
-  --surface-glass: rgba(255, 255, 255, 0.7);
-  --surface-glass-border: rgba(255, 255, 255, 0.6);
-  --text-muted: #5d6a7f;
-  --text-subtle: #8b97ab;
+  --background: #f3f3f3;
+  --foreground: #171717;
+  --primary: #111111;
+  --primary-dark: #000000;
+  --primary-light: #444444;
+  --accent: #222222;
+  --accent-cyan: #666666;
+  --accent-purple: #888888;
+  --surface-glass: rgba(255, 255, 255, 0.82);
+  --surface-glass-border: rgba(0, 0, 0, 0.1);
+  --text-muted: #666666;
+  --text-subtle: #999999;
 }
 
 @theme inline {
@@ -24,10 +24,30 @@
   --color-accent: var(--accent);
   --color-accent-cyan: var(--accent-cyan);
   --color-accent-purple: var(--accent-purple);
-  --font-sans: var(--font-inter);
-  --font-body: var(--font-inter);
-  --font-display: var(--font-manrope);
-  --font-mono: var(--font-inter);
+  --font-sans: var(--font-poppins);
+  --font-body: var(--font-poppins);
+  --font-display: var(--font-poppins);
+  --font-mono: var(--font-poppins);
+}
+
+/* Typography Scale */
+:root {
+  /* Font sizes */
+  --text-display: 3.5rem; /* 56px */
+  --text-heading: 2rem; /* 32px */
+  --text-section: 1.5rem; /* 24px */
+  --text-base: 1rem; /* 16px */
+  --text-sm: 0.875rem; /* 14px */
+  --text-xs: 0.75rem; /* 12px */
+  --text-tiny: 0.6875rem; /* 11px */
+
+  /* Font weights */
+  --fw-display: 700;
+  --fw-heading: 700;
+  --fw-section: 600;
+  --fw-base: 500;
+  --fw-label: 600;
+  --fw-body: 400;
 }
 
 * {
@@ -43,8 +63,8 @@ body {
   min-height: 100vh;
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-inter), sans-serif;
-  font-weight: 600;
+  font-family: var(--font-poppins), sans-serif;
+  font-weight: 400;
 }
 
 h1,
@@ -53,7 +73,7 @@ h3,
 h4,
 h5,
 h6 {
-  font-family: var(--font-manrope), sans-serif;
+  font-family: var(--font-poppins), sans-serif;
 }
 
 button,
