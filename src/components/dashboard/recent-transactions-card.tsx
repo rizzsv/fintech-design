@@ -1,8 +1,11 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import { motion } from 'framer-motion';
+import { ArrowDownLeft, ArrowUpRight } from 'lucide-react';
 import { formatCurrency, formatDate } from '@/lib/format';
+import { cashFlowTone } from '@/features/dashboard/cash-flow-colors';
 import type { RecentTransaction } from '@/features/dashboard/types';
 
 interface RecentTransactionsCardProps {
@@ -11,144 +14,129 @@ interface RecentTransactionsCardProps {
   error?: string;
 }
 
+const CARD_SHELL = 'rounded-2xl border border-[#E5E7EB] bg-white';
+
+/** Status is secondary information here, so only non-settled states get a tone. */
+function statusToneClass(status: string): string {
+  switch (status?.toLowerCase()) {
+    case 'pending':
+      return 'text-[#8A6A1F]';
+    case 'failed':
+    case 'cancelled':
+    case 'rejected':
+      return 'text-[#B42318]';
+    default:
+      return 'text-[#6B7280]';
+  }
+}
+
+function CardHeader() {
+  return (
+    <div className="flex items-center justify-between gap-3 border-b border-[#E5E7EB] px-4 py-3.5 sm:px-5">
+      <h3 className="text-sm font-semibold text-[#111827]">Recent Transactions</h3>
+      <Link
+        href="/analysis"
+        className="text-[11px] font-semibold text-[#1A5C38] transition-colors hover:text-[#1E7A48]"
+      >
+        View All
+      </Link>
+    </div>
+  );
+}
+
 export function RecentTransactionsCard({ transactions, loading, error }: RecentTransactionsCardProps) {
   if (loading) {
     return (
-      <motion.section
-        whileHover={{ y: -2 }}
-        className="rounded-[26px] border border-slate-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md"
-      >
-        <h3 className="mb-3 text-lg font-semibold text-slate-800">Recent Transactions</h3>
-        <div className="space-y-2">
-          {[...Array(3)].map((_, i) => (
-            <div key={i} className="h-12 bg-slate-100 rounded-lg animate-pulse" />
+      <section className={CARD_SHELL}>
+        <CardHeader />
+        <div className="space-y-2 p-4 sm:p-5">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="h-12 animate-pulse rounded-xl bg-[#F5F5F5]" />
           ))}
         </div>
-      </motion.section>
+      </section>
     );
   }
 
   if (error) {
     return (
-      <motion.section
-        whileHover={{ y: -2 }}
-        className="rounded-[26px] border border-slate-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md"
-      >
-        <h3 className="mb-3 text-lg font-semibold text-slate-800">Recent Transactions</h3>
-        <div className="rounded-xl border border-red-100 bg-red-50 p-4 text-sm text-red-600">{error}</div>
-      </motion.section>
+      <section className={CARD_SHELL}>
+        <CardHeader />
+        <div className="p-4 sm:p-5">
+          <div className="rounded-xl border border-[#F5D9D5] bg-[#FDF0EE] p-4 text-sm text-[#B42318]">
+            {error}
+          </div>
+        </div>
+      </section>
     );
   }
 
   if (!transactions || transactions.length === 0) {
     return (
-      <motion.section
-        whileHover={{ y: -2 }}
-        className="rounded-[26px] border border-slate-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md"
-      >
-        <h3 className="mb-3 text-lg font-semibold text-slate-800">Recent Transactions</h3>
-        <div className="flex h-40 items-center justify-center rounded-2xl bg-slate-50">
-          <p className="text-sm text-slate-500">No transactions yet</p>
+      <section className={CARD_SHELL}>
+        <CardHeader />
+        <div className="flex h-40 items-center justify-center p-4 sm:p-5">
+          <p className="text-sm text-[#6B7280]">No transactions yet</p>
         </div>
-      </motion.section>
+      </section>
     );
   }
 
-  const getStatusBadgeStyles = (status: string) => {
-    const statusLower = status?.toLowerCase() || '';
-    if (statusLower === 'success') {
-      return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-    }
-    if (statusLower === 'pending') {
-      return 'bg-amber-50 text-amber-700 border-amber-200';
-    }
-    if (statusLower === 'failed' || statusLower === 'cancelled') {
-      return 'bg-red-50 text-red-700 border-red-200';
-    }
-    return 'bg-slate-50 text-slate-700 border-slate-200';
-  };
-
   return (
-    <motion.section
-      whileHover={{ y: -2 }}
-      className="overflow-hidden rounded-[26px] border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md"
-    >
-      <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
-        <h3 className="text-lg font-semibold text-slate-800">Recent Transactions</h3>
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          type="button"
-          className="text-xs font-semibold text-sky-600 hover:text-sky-700"
-        >
-          View All
-        </motion.button>
-      </div>
+    <section className={`overflow-hidden ${CARD_SHELL}`}>
+      <CardHeader />
 
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[680px] text-left text-sm">
-          <thead className="border-b border-slate-200 text-xs text-slate-500">
-            <tr>
-              <th className="px-5 py-3 font-medium">Reference</th>
-              <th className="px-4 py-3 font-medium">Type</th>
-              <th className="px-4 py-3 font-medium">Date</th>
-              <th className="px-4 py-3 font-medium">Status</th>
-              <th className="px-4 py-3 text-right font-medium">Amount</th>
-              <th className="px-5 py-3 text-right font-medium" />
-            </tr>
-          </thead>
-          <motion.tbody
-            initial="hidden"
-            animate="visible"
-            variants={{
-              hidden: { opacity: 0 },
-              visible: { opacity: 1, transition: { staggerChildren: 0.05 } },
-            }}
-          >
-            {transactions.map((tx) => {
-              const isIncome = tx.direction === 'INCOME';
+      <motion.ul
+        initial="hidden"
+        animate="visible"
+        variants={{
+          hidden: { opacity: 0 },
+          visible: { opacity: 1, transition: { staggerChildren: 0.05 } },
+        }}
+        className="divide-y divide-[#E5E7EB]"
+      >
+        {transactions.map((tx) => {
+          const isIncome = tx.direction === 'INCOME';
+          const DirectionIcon = isIncome ? ArrowDownLeft : ArrowUpRight;
+          const amountClass = isIncome ? cashFlowTone.income.text : cashFlowTone.expense.text;
 
-              return (
-                <motion.tr
-                  key={tx.id}
-                  variants={{ hidden: { opacity: 0, x: -12 }, visible: { opacity: 1, x: 0 } }}
-                  className="border-b border-slate-200 transition-colors last:border-b-0 hover:bg-slate-50"
-                >
-                  <td className="px-5 py-4 font-mono text-xs font-medium text-slate-800">
-                    {tx.reference || tx.id.slice(0, 12)}
-                  </td>
-                  <td className="px-4 py-4">
-                    <p className="font-medium text-slate-800">{tx.type}</p>
-                    {tx.description && <p className="mt-1 max-w-[180px] truncate text-xs text-slate-500">{tx.description}</p>}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-4 text-slate-500">{formatDate(tx.createdAt)}</td>
-                  <td className="px-4 py-4">
-                    <span className={`inline-flex rounded px-2 py-1 text-[11px] font-semibold capitalize ${getStatusBadgeStyles(tx.status)}`}>
-                      {tx.status.toLowerCase()}
-                    </span>
-                  </td>
-                  <td className={`whitespace-nowrap px-4 py-4 text-right font-semibold ${isIncome ? 'text-emerald-600' : 'text-red-600'}`}>
-                    {isIncome ? '+' : '-'}{formatCurrency(tx.amount)}
-                  </td>
-                  <td className="px-5 py-4 text-right">
-                    <button type="button" className="text-xs font-semibold text-slate-700 hover:text-sky-600">
-                      View
-                    </button>
-                  </td>
-                </motion.tr>
-              );
-            })}
-          </motion.tbody>
-          <tfoot className="border-t border-slate-200">
-            <tr>
-              <td colSpan={5} className="px-5 py-3 text-xs font-semibold text-slate-600">
-                Showing {transactions.length} recent transaction{transactions.length === 1 ? '' : 's'}
-              </td>
-              <td />
-            </tr>
-          </tfoot>
-        </table>
-      </div>
-    </motion.section>
+          return (
+            <motion.li
+              key={tx.id}
+              variants={{ hidden: { opacity: 0, x: -8 }, visible: { opacity: 1, x: 0 } }}
+              className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-[#FAFAF9] sm:px-5"
+            >
+              <span
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#F5F5F5]"
+                aria-hidden="true"
+              >
+                <DirectionIcon
+                  className="h-4 w-4"
+                  style={{ color: isIncome ? cashFlowTone.income.hex : cashFlowTone.expense.hex }}
+                />
+              </span>
+
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-[#111827]">{tx.type}</p>
+                <p className="mt-0.5 truncate text-[11px] text-[#6B7280]">
+                  {tx.description ? `${tx.description} · ` : ''}
+                  {formatDate(tx.createdAt)}
+                </p>
+              </div>
+
+              <div className="shrink-0 text-right">
+                <p className={`text-sm font-semibold tabular-nums ${amountClass}`}>
+                  {isIncome ? '+' : '-'}
+                  {formatCurrency(tx.amount)}
+                </p>
+                <p className={`mt-0.5 text-[11px] capitalize ${statusToneClass(tx.status)}`}>
+                  {tx.status.toLowerCase()}
+                </p>
+              </div>
+            </motion.li>
+          );
+        })}
+      </motion.ul>
+    </section>
   );
 }

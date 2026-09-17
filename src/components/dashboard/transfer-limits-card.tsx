@@ -3,73 +3,67 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { formatCurrency } from '@/lib/format';
+import { cashFlowTone } from '@/features/dashboard/cash-flow-colors';
 import type { DashboardLimits } from '@/features/dashboard/types';
 
 interface TransferLimitsCardProps {
   limits: DashboardLimits;
 }
 
-export function TransferLimitsCard({ limits }: TransferLimitsCardProps) {
-  const getBarColor = (percentage: number) => {
-    if (percentage >= 80) return 'bg-red-500';
-    if (percentage >= 50) return 'bg-amber-500';
-    return 'bg-emerald-500';
-  };
+/**
+ * Bar colour thresholds are a presentation heuristic only - the backend exposes no
+ * warning levels on `LimitDetail`, so nothing here should be read as a business rule.
+ */
+function barClass(percentage: number): string {
+  if (percentage >= 80) return cashFlowTone.net.bar;
+  if (percentage >= 50) return cashFlowTone.expense.bar;
+  return cashFlowTone.income.bar;
+}
 
-  const dailyPercentage = Math.min(Math.max(limits.dailyTransfer.percentageUsed, 0), 100);
-  const monthlyPercentage = Math.min(Math.max(limits.monthlyTransfer.percentageUsed, 0), 100);
+export function TransferLimitsCard({ limits }: TransferLimitsCardProps) {
+  const rows = [
+    { label: 'Daily', detail: limits.dailyTransfer },
+    { label: 'Monthly', detail: limits.monthlyTransfer },
+  ];
 
   return (
-    <motion.section initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
-      <h3 className="text-lg font-semibold text-slate-900">Transfer Limits</h3>
+    <section className="rounded-2xl border border-[#E5E7EB] bg-white p-5 sm:p-6">
+      <h3 className="text-sm font-semibold text-[#111827]">Transfer Limits</h3>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-        {/* Daily Limit */}
-        <div className="space-y-3">
-          <p className="text-xs font-medium text-slate-600 uppercase tracking-wide">Daily</p>
-          <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <p className="text-sm font-medium text-slate-700">Usage</p>
-              <p className="text-sm font-semibold text-slate-900">{dailyPercentage}%</p>
-            </div>
-            <div className="h-2 w-full rounded-full bg-slate-200 overflow-hidden">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${dailyPercentage}%` }}
-                transition={{ duration: 0.8, type: 'spring', stiffness: 100 }}
-                className={`h-full rounded-full ${getBarColor(dailyPercentage)}`}
-              />
-            </div>
-            <div className="flex justify-between text-xs text-slate-600">
-              <span>{formatCurrency(limits.dailyTransfer.used)}</span>
-              <span>{formatCurrency(limits.dailyTransfer.limit)}</span>
-            </div>
-          </div>
-        </div>
+      <div className="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-6">
+        {rows.map(({ label, detail }) => {
+          const percentage = Math.min(Math.max(detail.percentageUsed, 0), 100);
 
-        {/* Monthly Limit */}
-        <div className="space-y-3">
-          <p className="text-xs font-medium text-slate-600 uppercase tracking-wide">Monthly</p>
-          <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <p className="text-sm font-medium text-slate-700">Usage</p>
-              <p className="text-sm font-semibold text-slate-900">{monthlyPercentage}%</p>
+          return (
+            <div key={label} className="min-w-0">
+              <div className="flex items-baseline justify-between gap-2">
+                <p className="text-[11px] font-medium uppercase tracking-wide text-[#6B7280]">
+                  {label}
+                </p>
+                <p className="text-xs font-semibold tabular-nums text-[#111827]">{percentage}%</p>
+              </div>
+
+              <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-[#E5E7EB]">
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${percentage}%` }}
+                  transition={{ duration: 0.8, type: 'spring', stiffness: 100 }}
+                  className={`h-full rounded-full ${barClass(percentage)}`}
+                />
+              </div>
+
+              <div className="mt-2 flex justify-between gap-2 text-[11px] text-[#6B7280]">
+                <span className="tabular-nums">{formatCurrency(detail.used)} used</span>
+                <span className="tabular-nums">{formatCurrency(detail.limit)}</span>
+              </div>
+
+              <p className="mt-1 text-[11px] tabular-nums text-[#6B7280]">
+                {formatCurrency(detail.remaining)} remaining
+              </p>
             </div>
-            <div className="h-2 w-full rounded-full bg-slate-200 overflow-hidden">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${monthlyPercentage}%` }}
-                transition={{ duration: 0.8, type: 'spring', stiffness: 100 }}
-                className={`h-full rounded-full ${getBarColor(monthlyPercentage)}`}
-              />
-            </div>
-            <div className="flex justify-between text-xs text-slate-600">
-              <span>{formatCurrency(limits.monthlyTransfer.used)}</span>
-              <span>{formatCurrency(limits.monthlyTransfer.limit)}</span>
-            </div>
-          </div>
-        </div>
+          );
+        })}
       </div>
-    </motion.section>
+    </section>
   );
 }

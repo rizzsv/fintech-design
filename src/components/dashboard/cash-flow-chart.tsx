@@ -2,6 +2,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { formatCurrency } from '@/lib/format';
+import { cashFlowTone, chartNeutral } from '@/features/dashboard/cash-flow-colors';
 import type { CashFlowSeriesItem } from '@/features/dashboard/types';
 
 interface CashFlowChartProps {
@@ -63,10 +64,14 @@ export function CashFlowChart({ series }: CashFlowChartProps) {
     return null;
   }
 
-  // SVG constants
-  const SVG_WIDTH = 800;
+  // SVG constants.
+  // The viewBox is sized close to the real rendered width of the dashboard's
+  // right-hand column. `preserveAspectRatio="xMidYMid meet"` scales the whole
+  // canvas uniformly, so an oversized viewBox would shrink the tick labels below
+  // legibility and letterbox the chart inside its container.
+  const SVG_WIDTH = 440;
   const SVG_HEIGHT = 300;
-  const PADDING = { top: 20, right: 28, bottom: 40, left: 72 };
+  const PADDING = { top: 16, right: 14, bottom: 34, left: 62 };
   const PLOT_WIDTH = SVG_WIDTH - PADDING.left - PADDING.right;
   const PLOT_HEIGHT = SVG_HEIGHT - PADDING.top - PADDING.bottom;
 
@@ -159,7 +164,7 @@ export function CashFlowChart({ series }: CashFlowChartProps) {
         y1={y}
         x2={SVG_WIDTH - PADDING.right}
         y2={y}
-        stroke="#e2e8f0"
+        stroke={chartNeutral.gridline}
         strokeWidth="1"
       />
     );
@@ -174,9 +179,9 @@ export function CashFlowChart({ series }: CashFlowChartProps) {
       <text
         key={`y-label-${i}`}
         x={PADDING.left - 10}
-        y={y + 4}
-        fontSize="12"
-        fill="#64748b"
+        y={y + 3}
+        fontSize="10"
+        fill={chartNeutral.tickLabel}
         textAnchor="end"
       >
         {formatYAxisLabel(value)}
@@ -192,14 +197,21 @@ export function CashFlowChart({ series }: CashFlowChartProps) {
     const date = new Date(series[i].date);
     const label = date.toLocaleDateString('id-ID', { month: 'short', day: 'numeric' });
     xLabels.push(
-      <text key={`x-label-${i}`} x={x} y={SVG_HEIGHT - PADDING.bottom + 20} fontSize="12" fill="#64748b" textAnchor="middle">
+      <text
+        key={`x-label-${i}`}
+        x={x}
+        y={SVG_HEIGHT - PADDING.bottom + 18}
+        fontSize="10"
+        fill={chartNeutral.tickLabel}
+        textAnchor="middle"
+      >
         {label}
       </text>
     );
   }
 
   // Generate data points
-  const dataPoints = [];
+  const dataPoints: React.ReactNode[] = [];
   chartData.incomeValues.forEach((value, i) => {
     const x = PADDING.left + i * xScale;
     const y = PADDING.top + PLOT_HEIGHT - value * yScale;
@@ -208,10 +220,10 @@ export function CashFlowChart({ series }: CashFlowChartProps) {
         key={`income-point-${i}`}
         cx={x}
         cy={y}
-        r="3.5"
-        fill="none"
-        stroke="#10b981"
-        strokeWidth="2"
+        r="2.8"
+        fill="#ffffff"
+        stroke={cashFlowTone.income.hex}
+        strokeWidth="1.75"
         onMouseEnter={() => setHoveredIndex(i)}
         onMouseLeave={() => setHoveredIndex(null)}
         className="cursor-pointer"
@@ -227,10 +239,10 @@ export function CashFlowChart({ series }: CashFlowChartProps) {
         key={`expense-point-${i}`}
         cx={x}
         cy={y}
-        r="3.5"
-        fill="none"
-        stroke="#ef4444"
-        strokeWidth="2"
+        r="2.8"
+        fill="#ffffff"
+        stroke={cashFlowTone.expense.hex}
+        strokeWidth="1.75"
         onMouseEnter={() => setHoveredIndex(i)}
         onMouseLeave={() => setHoveredIndex(null)}
         className="cursor-pointer"
@@ -247,10 +259,10 @@ export function CashFlowChart({ series }: CashFlowChartProps) {
               y1={PADDING.top}
               x2={PADDING.left + hoveredIndex * xScale}
               y2={PADDING.top + PLOT_HEIGHT}
-              stroke="#cbd5e1"
+              stroke={chartNeutral.crosshair}
               strokeWidth="1"
               strokeDasharray="4"
-              opacity="0.5"
+              opacity="0.8"
             />
           ),
           position: getTooltipPosition(
@@ -273,10 +285,10 @@ export function CashFlowChart({ series }: CashFlowChartProps) {
           className="block"
         >
           <defs>
-            {/* Income gradient: top 30% opacity → bottom 5% opacity */}
+            {/* Income gradient: top 26% opacity → bottom 2% opacity */}
             <linearGradient id="incomeGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#10b981" stopOpacity="0.3" />
-              <stop offset="100%" stopColor="#10b981" stopOpacity="0.05" />
+              <stop offset="0%" stopColor={cashFlowTone.income.hex} stopOpacity="0.26" />
+              <stop offset="100%" stopColor={cashFlowTone.income.hex} stopOpacity="0.02" />
             </linearGradient>
           </defs>
 
@@ -284,7 +296,14 @@ export function CashFlowChart({ series }: CashFlowChartProps) {
           {gridLines}
 
           {/* Y-axis */}
-          <line x1={PADDING.left} y1={PADDING.top} x2={PADDING.left} y2={PADDING.top + PLOT_HEIGHT} stroke="#94a3b8" strokeWidth="1" />
+          <line
+            x1={PADDING.left}
+            y1={PADDING.top}
+            x2={PADDING.left}
+            y2={PADDING.top + PLOT_HEIGHT}
+            stroke={chartNeutral.axis}
+            strokeWidth="1"
+          />
 
           {/* X-axis */}
           <line
@@ -292,7 +311,7 @@ export function CashFlowChart({ series }: CashFlowChartProps) {
             y1={PADDING.top + PLOT_HEIGHT}
             x2={SVG_WIDTH - PADDING.right}
             y2={PADDING.top + PLOT_HEIGHT}
-            stroke="#94a3b8"
+            stroke={chartNeutral.axis}
             strokeWidth="1"
           />
 
@@ -306,10 +325,25 @@ export function CashFlowChart({ series }: CashFlowChartProps) {
           {incomeAreaPath && <path d={incomeAreaPath} fill="url(#incomeGradient)" />}
 
           {/* Income line (solid) */}
-          <path d={incomePath} stroke="#10b981" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+          <path
+            d={incomePath}
+            stroke={cashFlowTone.income.hex}
+            strokeWidth="2"
+            fill="none"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
 
           {/* Expense line (dashed) */}
-          <path d={expensePath} stroke="#ef4444" strokeWidth="2" fill="none" strokeDasharray="5,3" strokeLinecap="round" strokeLinejoin="round" />
+          <path
+            d={expensePath}
+            stroke={cashFlowTone.expense.hex}
+            strokeWidth="2"
+            fill="none"
+            strokeDasharray="5,3"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
 
           {/* Data points */}
           {dataPoints}
@@ -322,23 +356,23 @@ export function CashFlowChart({ series }: CashFlowChartProps) {
               <>
                 {tooltip.line}
                 <g transform={`translate(${tooltip.position.x}, ${tooltip.position.y})`}>
-                <rect x="0" y="0" width="160" height="86" rx="8" fill="#0f172a" stroke="#334155" strokeWidth="1" opacity="0.97" />
-                <text x="12" y="19" fontSize="11" fill="#cbd5e1" fontWeight="600">
+                <rect x="0" y="0" width="160" height="86" rx="8" fill={chartNeutral.tooltipSurface} stroke={chartNeutral.tooltipBorder} strokeWidth="1" opacity="0.97" />
+                <text x="12" y="19" fontSize="11" fill={chartNeutral.tooltipLabel} fontWeight="600">
                   {new Date(tooltip.data.date).toLocaleDateString('id-ID', { month: 'short', day: 'numeric' })}
                 </text>
-                <circle cx="14" cy="36" r="3.5" fill="#10b981" />
-                <text x="24" y="40" fontSize="10" fill="#e2e8f0">Income</text>
-                <text x="148" y="40" textAnchor="end" fontSize="10" fill="#f8fafc" fontWeight="600">
+                <circle cx="14" cy="36" r="3.5" fill={cashFlowTone.income.hex} />
+                <text x="24" y="40" fontSize="10" fill={chartNeutral.tooltipLabel}>Income</text>
+                <text x="148" y="40" textAnchor="end" fontSize="10" fill={chartNeutral.tooltipValue} fontWeight="600">
                   {formatCurrency(tooltip.data.income)}
                 </text>
-                <circle cx="14" cy="54" r="3.5" fill="#ef4444" />
-                <text x="24" y="58" fontSize="10" fill="#e2e8f0">Expense</text>
-                <text x="148" y="58" textAnchor="end" fontSize="10" fill="#f8fafc" fontWeight="600">
+                <circle cx="14" cy="54" r="3.5" fill={cashFlowTone.expense.hex} />
+                <text x="24" y="58" fontSize="10" fill={chartNeutral.tooltipLabel}>Expense</text>
+                <text x="148" y="58" textAnchor="end" fontSize="10" fill={chartNeutral.tooltipValue} fontWeight="600">
                   {formatCurrency(tooltip.data.expense)}
                 </text>
-                <circle cx="14" cy="72" r="3.5" fill="#3b82f6" />
-                <text x="24" y="76" fontSize="10" fill="#e2e8f0">Net</text>
-                <text x="148" y="76" textAnchor="end" fontSize="10" fill="#f8fafc" fontWeight="600">
+                <circle cx="14" cy="72" r="3.5" fill={cashFlowTone.net.hex} />
+                <text x="24" y="76" fontSize="10" fill={chartNeutral.tooltipLabel}>Net</text>
+                <text x="148" y="76" textAnchor="end" fontSize="10" fill={chartNeutral.tooltipValue} fontWeight="600">
                   {formatCurrency(tooltip.data.net)}
                 </text>
                 </g>
@@ -348,15 +382,29 @@ export function CashFlowChart({ series }: CashFlowChartProps) {
         </svg>
       </div>
 
-      {/* Legend */}
-      <div className="shrink-0 flex justify-center gap-4 text-xs py-1">
+      {/* Legend. Swatches mirror the actual marks on the canvas: income is a solid
+          line, expense is dashed. `net` is intentionally absent - it is not plotted,
+          so a legend entry for it would point at nothing. */}
+      <div className="flex shrink-0 justify-center gap-5 py-1 text-xs">
         <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full bg-emerald-600" />
-          <span className="text-slate-600">Income</span>
+          <svg width="14" height="2" aria-hidden="true">
+            <line x1="0" y1="1" x2="14" y2="1" stroke={cashFlowTone.income.hex} strokeWidth="2" />
+          </svg>
+          <span className="text-[#6B7280]">Income</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-3 h-0.5 bg-red-600" style={{ height: '2px' }} />
-          <span className="text-slate-600">Expense</span>
+          <svg width="14" height="2" aria-hidden="true">
+            <line
+              x1="0"
+              y1="1"
+              x2="14"
+              y2="1"
+              stroke={cashFlowTone.expense.hex}
+              strokeWidth="2"
+              strokeDasharray="4,3"
+            />
+          </svg>
+          <span className="text-[#6B7280]">Expense</span>
         </div>
       </div>
     </div>

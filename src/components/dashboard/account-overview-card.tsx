@@ -1,64 +1,24 @@
 'use client';
 
 import React from 'react';
-import { motion } from 'framer-motion';
-import { CheckCircle2, AlertCircle } from 'lucide-react';
+import { AlertCircle, CheckCircle2 } from 'lucide-react';
+import { cashFlowTone } from '@/features/dashboard/cash-flow-colors';
 import type { DashboardAccountOverview } from '@/features/dashboard/types';
 
 interface AccountOverviewCardProps {
   accountOverview: DashboardAccountOverview;
-  loading?: boolean;
-  error?: string;
 }
 
-export function AccountOverviewCard({ accountOverview, loading, error }: AccountOverviewCardProps) {
-  const getStatusIcon = (isActive: boolean) =>
-    isActive ? (
-      <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-    ) : (
-      <AlertCircle className="h-5 w-5 text-amber-600" />
-    );
-
-  const getStatusColor = (isActive: boolean) => (isActive ? 'text-emerald-700' : 'text-amber-700');
-  const getStatusLabel = (isActive: boolean) => (isActive ? 'Active' : 'Inactive');
-
-  if (loading) {
-    return (
-      <motion.section
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="space-y-4"
-      >
-        <h2 className="text-lg font-semibold text-slate-900">Account Overview</h2>
-        <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-500">
-          Loading account status...
-        </div>
-      </motion.section>
-    );
-  }
-
-  if (error) {
-    return (
-      <motion.section
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="space-y-4"
-      >
-        <h2 className="text-lg font-semibold text-slate-900">Account Overview</h2>
-        <div className="rounded-lg border border-red-100 bg-red-50 p-4 text-sm text-red-600">{error}</div>
-      </motion.section>
-    );
-  }
-
+export function AccountOverviewCard({ accountOverview }: AccountOverviewCardProps) {
   const statusItems = [
     {
       label: 'Account',
-      value: getStatusLabel(accountOverview.isActive),
+      value: accountOverview.isActive ? 'Active' : 'Inactive',
       isActive: accountOverview.isActive,
     },
     {
       label: 'Email',
-      value: getStatusLabel(accountOverview.isEmailVerified),
+      value: accountOverview.isEmailVerified ? 'Verified' : 'Unverified',
       isActive: accountOverview.isEmailVerified,
     },
     {
@@ -74,38 +34,29 @@ export function AccountOverviewCard({ accountOverview, loading, error }: Account
   ];
 
   return (
-    <motion.section initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
-      <h2 className="text-lg font-semibold text-slate-900">Account Overview</h2>
+    <section className="rounded-2xl border border-[#E5E7EB] bg-white p-5 sm:p-6">
+      <h3 className="text-sm font-semibold text-[#111827]">Account Overview</h3>
 
-      <motion.div
-        initial="hidden"
-        animate="visible"
-        variants={{
-          hidden: { opacity: 0 },
-          visible: {
-            opacity: 1,
-            transition: { staggerChildren: 0.05 },
-          },
-        }}
-        className="flex flex-col sm:flex-row gap-3 sm:gap-4"
-      >
-        {statusItems.map((status) => (
-          <motion.div
-            key={status.label}
-            variants={{
-              hidden: { opacity: 0, y: 8 },
-              visible: { opacity: 1, y: 0 },
-            }}
-            className="flex-1"
-          >
-            <p className="text-xs font-medium text-slate-600 mb-1">{status.label}</p>
-            <div className="flex items-center gap-2">
-              {getStatusIcon(status.isActive)}
-              <p className={`text-sm font-semibold ${getStatusColor(status.isActive)}`}>{status.value}</p>
+      <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-4">
+        {statusItems.map((status) => {
+          const Icon = status.isActive ? CheckCircle2 : AlertCircle;
+          const tone = status.isActive ? cashFlowTone.income : cashFlowTone.expense;
+
+          return (
+            <div key={status.label} className="min-w-0">
+              <p className="text-[11px] font-medium uppercase tracking-wide text-[#6B7280]">
+                {status.label}
+              </p>
+              <div className="mt-1 flex items-center gap-1.5">
+                <Icon className="h-4 w-4 shrink-0" style={{ color: tone.hex }} />
+                <p className={`truncate text-sm font-semibold capitalize ${tone.text}`}>
+                  {status.value.toLowerCase()}
+                </p>
+              </div>
             </div>
-          </motion.div>
-        ))}
-      </motion.div>
-    </motion.section>
+          );
+        })}
+      </div>
+    </section>
   );
 }

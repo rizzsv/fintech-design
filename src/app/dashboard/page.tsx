@@ -10,12 +10,12 @@ import type { DashboardResponse, MeResponse } from '@/features/dashboard/types';
 import { useAuthStore } from '@/store/auth-store';
 
 import { DashboardHeader } from '@/components/dashboard/dashboard-header';
-import { WalletBalanceCard } from '@/components/dashboard/wallet-balance-card';
-import { AccountOverviewCard } from '@/components/dashboard/account-overview-card';
-import { MonthlySummaryCards } from '@/components/dashboard/monthly-summary-cards';
-import { CashFlowCard } from '@/components/dashboard/cash-flow-card';
+import { FinancialOverviewCard } from '@/components/dashboard/financial-overview-card';
 import { TransferLimitsCard } from '@/components/dashboard/transfer-limits-card';
+import { CashFlowSummaryCards } from '@/components/dashboard/cash-flow-summary-cards';
 import { RecentTransactionsCard } from '@/components/dashboard/recent-transactions-card';
+import { CashFlowChartCard } from '@/components/dashboard/cash-flow-chart-card';
+import { AccountOverviewCard } from '@/components/dashboard/account-overview-card';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -25,8 +25,6 @@ export default function DashboardPage() {
   const [profile, setProfile] = useState<MeResponse | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
   const [logoutLoading, setLogoutLoading] = useState(false);
-  const [accountStatusLoading, setAccountStatusLoading] = useState(true);
-  const [accountStatusError, setAccountStatusError] = useState('');
   const refreshToken = useAuthStore((state) => state.refreshToken);
   const clearTokens = useAuthStore((state) => state.clearTokens);
 
@@ -49,14 +47,14 @@ export default function DashboardPage() {
       }
     };
 
+    // Only feeds the header dropdown; a failure here leaves `profileData` undefined
+    // rather than blocking the dashboard, which comes from a separate request.
     const fetchAccountStatus = async () => {
       try {
         const me = await dashboardApi.getMe();
         setProfile(me);
       } catch (err) {
-        setAccountStatusError(err instanceof Error ? err.message : 'Unable to load account status');
-      } finally {
-        setAccountStatusLoading(false);
+        console.error('Account status request failed', err);
       }
     };
 
@@ -118,47 +116,50 @@ export default function DashboardPage() {
     },
   };
 
+  // Shared between the skeleton and the loaded layout so the two cannot drift.
+  const columnsClass =
+    'grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] lg:items-start xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]';
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-white grayscale">
-        <div className="flex min-h-screen w-full overflow-hidden bg-white">
-          <main className="min-h-screen flex-1 px-4 py-5 sm:px-6 sm:py-6">
-            <div className="mb-6 h-12 w-full animate-pulse rounded-2xl bg-white/70" />
-            <div className="grid grid-cols-[1.8fr_0.95fr] gap-6">
-              <div className="space-y-6">
-                <div className="h-32 animate-pulse rounded-[28px] bg-[#eef2f7]" />
-                <div className="grid gap-4 md:grid-cols-3">
-                  {[...Array(3)].map((_, i) => (
-                    <div key={i} className="h-24 animate-pulse rounded-2xl bg-white" />
-                  ))}
-                </div>
-                <div className="h-80 animate-pulse rounded-[26px] bg-white" />
-              </div>
-              <div className="space-y-6">
-                <div className="h-64 animate-pulse rounded-[26px] bg-[#0d2c5f]" />
+      <div className="min-h-screen bg-[#F5F5F5]">
+        <main className="mx-auto w-full max-w-[1600px] px-4 py-4 sm:px-6 sm:py-5">
+          <div className="mb-5 h-12 w-full animate-pulse rounded-2xl bg-white" />
+          <div className={columnsClass}>
+            <div className="min-w-0 space-y-5">
+              <div className="h-64 animate-pulse rounded-2xl bg-white" />
+              <div className="h-40 animate-pulse rounded-2xl bg-white" />
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="h-28 animate-pulse rounded-2xl bg-white" />
+                ))}
               </div>
             </div>
-          </main>
-        </div>
+            <div className="min-w-0 space-y-5">
+              <div className="h-72 animate-pulse rounded-2xl bg-white" />
+              <div className="h-80 animate-pulse rounded-2xl bg-white" />
+            </div>
+          </div>
+        </main>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex min-h-screen items-center justify-center px-6">
+      <div className="flex min-h-screen items-center justify-center bg-[#F5F5F5] px-6">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="rounded-2xl border border-red-200 bg-red-50 p-6 text-red-700 max-w-md"
+          className="max-w-md rounded-2xl border border-[#F5D9D5] bg-[#FDF0EE] p-6 text-[#B42318]"
         >
-          <h3 className="font-semibold mb-2">Dashboard Load Failed</h3>
-          <p className="text-sm mb-4">{error}</p>
+          <h3 className="mb-2 font-semibold">Dashboard Load Failed</h3>
+          <p className="mb-4 text-sm">{error}</p>
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={() => router.refresh()}
-            className="w-full rounded-lg bg-red-600 text-white px-4 py-2 text-sm font-medium hover:bg-red-700"
+            className="w-full rounded-xl bg-[#B42318] px-4 py-2 text-sm font-medium text-white hover:bg-[#911D13]"
           >
             Retry
           </motion.button>
@@ -172,57 +173,45 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#ededed] grayscale">
-      <div className="flex min-h-screen w-full overflow-hidden bg-white">
-        <motion.main
-          initial="hidden"
-          animate="visible"
-          variants={containerVariants}
-          className="min-h-screen flex-1 overflow-y-auto bg-white px-4 py-4 sm:px-6 sm:py-5"
-        >
-          <DashboardHeader
-            userName={userName}
-            userInitial={userInitial}
-            onProfileClick={handleProfileToggle}
-            profileOpen={profileOpen}
-            profileData={
-              profile
-                ? {
-                    email: profile.email,
-                    phoneNumber: profile.phoneNumber,
-                    accountActive: profile.account.isActive,
-                    emailVerified: profile.account.isEmailVerified,
-                    kycStatus: profile.kyc.status,
-                  }
-                : undefined
-            }
-            onLogout={handleLogout}
-            logoutLoading={logoutLoading}
-          />
+    <div className="min-h-screen bg-[#F5F5F5]">
+      <motion.main
+        initial="hidden"
+        animate="visible"
+        variants={containerVariants}
+        className="mx-auto w-full max-w-[1600px] px-4 py-4 sm:px-6 sm:py-5"
+      >
+        <DashboardHeader
+          userName={userName}
+          userInitial={userInitial}
+          onProfileClick={handleProfileToggle}
+          profileOpen={profileOpen}
+          profileData={
+            profile
+              ? {
+                  email: profile.email,
+                  phoneNumber: profile.phoneNumber,
+                  accountActive: profile.account.isActive,
+                  emailVerified: profile.account.isEmailVerified,
+                  kycStatus: profile.kyc.status,
+                }
+              : undefined
+          }
+          onLogout={handleLogout}
+          logoutLoading={logoutLoading}
+        />
 
-          <div className="w-full space-y-6">
+        {/* Collapsing to one column stacks these wrappers in DOM order, which gives the
+            required mobile sequence: financial card, transfer limits, income/expense/net,
+            recent transactions, cash-flow chart. */}
+        <div className={columnsClass}>
+          <motion.div className="min-w-0 space-y-5">
             <motion.div variants={itemVariants}>
-              <WalletBalanceCard
+              <FinancialOverviewCard
                 wallet={dashboard.wallet}
+                monthlyStats={dashboard.monthlyStatistics}
                 onTopUp={() => router.push('/topup')}
                 onTransfer={() => router.push('/transfer')}
               />
-            </motion.div>
-
-            <motion.div variants={itemVariants}>
-              <AccountOverviewCard
-                accountOverview={dashboard.accountOverview}
-                loading={accountStatusLoading}
-                error={accountStatusError}
-              />
-            </motion.div>
-
-            <motion.div variants={itemVariants}>
-              <MonthlySummaryCards monthlyStats={dashboard.monthlyStatistics} />
-            </motion.div>
-
-            <motion.div variants={itemVariants}>
-              <CashFlowCard cashFlow={dashboard.cashFlow} />
             </motion.div>
 
             <motion.div variants={itemVariants}>
@@ -230,11 +219,25 @@ export default function DashboardPage() {
             </motion.div>
 
             <motion.div variants={itemVariants}>
+              <CashFlowSummaryCards cashFlow={dashboard.cashFlow} />
+            </motion.div>
+          </motion.div>
+
+          <motion.div className="min-w-0 space-y-5">
+            <motion.div variants={itemVariants}>
               <RecentTransactionsCard transactions={dashboard.recentTransactions} />
             </motion.div>
-          </div>
-        </motion.main>
-      </div>
+
+            <motion.div variants={itemVariants}>
+              <CashFlowChartCard cashFlow={dashboard.cashFlow} />
+            </motion.div>
+
+            <motion.div variants={itemVariants}>
+              <AccountOverviewCard accountOverview={dashboard.accountOverview} />
+            </motion.div>
+          </motion.div>
+        </div>
+      </motion.main>
     </div>
   );
 }
