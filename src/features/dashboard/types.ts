@@ -145,13 +145,24 @@ export interface DashboardTransaction {
   counterparty?: string;
 }
 
+export type TransactionType = "TOPUP" | "TRANSFER" | "WITHDRAWAL" | "REFUND";
+export type TransactionStatus = "SUCCESS";
+
+export interface TransactionQuery {
+  page?: number;
+  limit?: number;
+  search?: string;
+  type?: TransactionType;
+  status?: TransactionStatus;
+}
+
 export interface TransactionItem {
   id: string;
   fromWalletId?: string | null;
   toWalletId: string;
   toEmail?: string | null;
   amount: string | number;
-  transactionType: "TOPUP" | "TRANSFER" | "WITHDRAWAL" | "REFUND";
+  transactionType: TransactionType;
   status: string;
   createdAt: string;
 }
