@@ -11,7 +11,7 @@ import { useForm } from "react-hook-form";
 
 import { AnimatedNetwork } from "@/components/auth/animated-network";
 import { AuthField } from "@/components/ui/auth-field";
-import { authApi } from "@/features/auth/api";
+import { authApi, ApiError } from "@/features/auth/api";
 import { loginSchema, registerSchema } from "@/features/auth/schemas";
 import { cn } from "@/utils/cn";
 import { useAuthStore } from "@/store/auth-store";
@@ -33,14 +33,14 @@ export function AuthShell() {
     resolver: zodResolver(isLogin ? loginSchema : registerSchema),
     defaultValues: isLogin
       ? { email: "", password: "" }
-      : { email: "", phoneNumber: "", password: "", firstName: "", lastName: "" },
+      : { firstName: "", lastName: "", email: "", phoneNumber: "", password: "" },
   });
 
   useEffect(() => {
     form.reset(
       isLogin
         ? { email: form.getValues("email") || "", password: "" }
-        : { email: form.getValues("email") || "", phoneNumber: "", password: "", firstName: "", lastName: "" },
+        : { firstName: "", lastName: "", email: form.getValues("email") || "", phoneNumber: "", password: "" },
     );
   }, [isLogin]);
 
@@ -61,8 +61,8 @@ export function AuthShell() {
         email: String(payload.email),
         phoneNumber: String(payload.phoneNumber),
         password: String(payload.password),
-        firstName: payload.firstName ? String(payload.firstName) : undefined,
-        lastName: payload.lastName ? String(payload.lastName) : undefined,
+        firstName: String(payload.firstName),
+        lastName: String(payload.lastName),
       });
     },
     onSuccess: (data) => {
@@ -74,12 +74,17 @@ export function AuthShell() {
         return;
       }
 
-      setSubmitMessage("Register successful. Please sign in with your new account.");
       setSubmitError("");
-      setIsLogin(true);
-      form.reset({ email: form.getValues("email"), password: "" });
+      setSubmitMessage("");
+      router.push(`/check-email?email=${encodeURIComponent("email" in data ? data.email : "")}`);
     },
     onError: (error: Error) => {
+      if (error instanceof ApiError && error.code === "EMAIL_NOT_VERIFIED") {
+        const email = String(form.getValues("email") ?? "");
+        router.push(`/check-email?email=${encodeURIComponent(email)}&reason=unverified`);
+        return;
+      }
+
       setSubmitError(error.message || "Something went wrong");
       setSubmitMessage("");
     },
@@ -163,13 +168,21 @@ export function AuthShell() {
                     animate={{ opacity: 1, height: "auto" }}
                     exit={{ opacity: 0, height: 0 }}
                     transition={{ delay: 0.2 }}
-                    className="overflow-hidden"
+                    className="space-y-4 overflow-hidden"
                   >
                     <AuthField
-                      label="Name"
-                      placeholder="John Doe"
-                      error={formErrors.firstName?.message || formErrors.lastName?.message}
+                      label="First Name"
+                      autoComplete="given-name"
+                      placeholder="John"
+                      error={formErrors.firstName?.message}
                       {...form.register("firstName")}
+                    />
+                    <AuthField
+                      label="Last Name"
+                      autoComplete="family-name"
+                      placeholder="Doe"
+                      error={formErrors.lastName?.message}
+                      {...form.register("lastName")}
                     />
                   </motion.div>
                 )}

@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c \"from PIL import Image; im=Image.open\\(''email-sending-notif.png''\\); print\\(im.size, im.mode\\)\")",
+      "Bash(node -e \"\nconst sharp=require\\(''sharp''\\);\n\\(async\\(\\)=>{\n const {data,info}=await sharp\\(''docs/design/email-sending-notif.png''\\).ensureAlpha\\(\\).raw\\(\\).toBuffer\\({resolveWithObject:true}\\);\n const {width,height,channels}=info;\n const px=\\(x,y\\)=>{const i=\\(y*width+x\\)*channels;return [data[i],data[i+1],data[i+2]];};\n const hex=c=>''#''+c.map\\(v=>v.toString\\(16\\).padStart\\(2,''0''\\)\\).join\\(''''\\);\n const region=\\(name,x0,y0,x1,y1,mode\\)=>{\n   let best=null,bestScore=mode===''dark''?1e9:-1;\n   const counts={};\n   for\\(let y=y0;y<y1;y++\\)for\\(let x=x0;x<x1;x++\\){\n     const c=px\\(x,y\\);const lum=0.299*c[0]+0.587*c[1]+0.114*c[2];\n     const mx=Math.max\\(...c\\),mn=Math.min\\(...c\\);const sat=mx-mn;\n     const score=mode===''dark''?lum:sat;\n     if\\(mode===''dark''?score<bestScore:score>bestScore\\){bestScore=score;best=c;}\n     const k=hex\\(c\\);counts[k]=\\(counts[k]||0\\)+1;\n   }\n   const top=Object.entries\\(counts\\).sort\\(\\(a,b\\)=>b[1]-a[1]\\).slice\\(0,3\\).map\\(\\([k,v]\\)=>k+'':''+v\\).join\\('' ''\\);\n   console.log\\(name.padEnd\\(16\\),hex\\(best\\),''| top:'',top\\);\n };\n region\\(''button fill'',250,215,350,235,''sat''\\);\n region\\(''logo mark'',20,8,36,22,''sat''\\);\n region\\(''register link'',548,10,585,20,''sat''\\);\n region\\(''heading'',230,145,370,168,''dark''\\);\n region\\(''body text'',190,170,412,190,''dark''\\);\n region\\(''footer'',18,358,105,370,''dark''\\);\n region\\(''resend text'',285,246,335,258,''dark''\\);\n region\\(''envelope'',260,80,320,120,''dark''\\);\n region\\(''brand text'',36,8,70,22,''dark''\\);\n console.log\\(''bg corners'', hex\\(px\\(2,2\\)\\), hex\\(px\\(597,2\\)\\), hex\\(px\\(2,372\\)\\), hex\\(px\\(300,300\\)\\)\\);\n}\\)\\(\\);\n\")",
+      "Bash(node -e \"\nconst sharp=require\\(''sharp''\\);const os=require\\(''os''\\),path=require\\(''path''\\);\nconst f=path.join\\(os.tmpdir\\(\\),''ref-mark.png''\\);\nsharp\\(''docs/design/email-sending-notif.png''\\).extract\\({left:16,top:6,width:16,height:18}\\).resize\\({width:16*22,kernel:''nearest''}\\).toFile\\(f\\).then\\(\\(\\)=>console.log\\(f\\)\\);\n\")",
+      "Bash(npx -y node@20 ./node_modules/typescript/bin/tsc --noEmit)",
+      "Bash(npm run lint)",
+      "Bash(npx vitest run test/unit)"
+    ]
+  }
+}

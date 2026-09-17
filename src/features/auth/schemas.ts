@@ -6,11 +6,11 @@ export const loginSchema = z.object({
 });
 
 export const registerSchema = z.object({
+  firstName: z.string().trim().min(1, "First name is required.").max(50, "First name is too long."),
+  lastName: z.string().trim().min(1, "Last name is required.").max(50, "Last name is too long."),
   email: z.email("Please enter a valid email address."),
   phoneNumber: z.string().min(10, "Phone number must be at least 10 digits.").max(15, "Phone number is too long."),
   password: z.string().min(8, "Password must be at least 8 characters."),
-  firstName: z.string().optional(),
-  lastName: z.string().optional(),
 });
 
 export type LoginFormValues = z.infer<typeof loginSchema>;

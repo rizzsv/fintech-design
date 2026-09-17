@@ -13,6 +13,7 @@
   --surface-glass-border: rgba(0, 0, 0, 0.1);
   --text-muted: #666666;
   --text-subtle: #999999;
+  --brand: #fc5f25;
 }
 
 @theme inline {
@@ -24,6 +25,7 @@
   --color-accent: var(--accent);
   --color-accent-cyan: var(--accent-cyan);
   --color-accent-purple: var(--accent-purple);
+  --color-brand: var(--brand);
   --font-sans: var(--font-poppins);
   --font-body: var(--font-poppins);
   --font-display: var(--font-poppins);
