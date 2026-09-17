@@ -72,7 +72,7 @@ export function FinancialOverviewCard({
             disabled={isFrozen}
             whileHover={{ scale: isFrozen ? 1 : 1.02 }}
             whileTap={{ scale: isFrozen ? 1 : 0.98 }}
-            className="min-w-[120px] flex-1 rounded-xl bg-[#1A5C38] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#1E7A48] disabled:cursor-not-allowed disabled:opacity-50"
+            className="min-w-[120px] flex-1 rounded-xl bg-black px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Top Up
           </motion.button>

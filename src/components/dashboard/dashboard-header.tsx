@@ -2,8 +2,12 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Bell, LogOut, X } from 'lucide-react';
-import { DashboardNavigation } from './dashboard-navigation';
+import { LogOut, X } from 'lucide-react';
+import {
+  DashboardTopBar,
+  topBarAvatarChipClass,
+  topBarAvatarClass,
+} from './dashboard-top-bar';
 
 interface DashboardHeaderProps {
   userName: string;
@@ -23,6 +27,12 @@ interface DashboardHeaderProps {
   logoutLoading?: boolean;
 }
 
+/**
+ * Wallet/Transfer render `DashboardTopBar` directly; pages that also need the
+ * profile menu render it through here. The sticky shell, navigation and
+ * notification button therefore live only in `DashboardTopBar`, and this file
+ * contributes just the interactive profile section.
+ */
 export function DashboardHeader({
   userName,
   userInitial,
@@ -35,21 +45,9 @@ export function DashboardHeader({
   logoutLoading,
 }: DashboardHeaderProps) {
   return (
-    <motion.div className="sticky top-0 z-30 mb-6 flex min-h-16 items-center justify-between gap-6 border-b border-slate-200 bg-white px-1 pb-3">
-      <div className="min-w-0 flex-1">
-        <DashboardNavigation />
-      </div>
-
-      <div className="flex items-center gap-3">
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          type="button"
-          className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition-colors hover:bg-slate-50"
-        >
-          <Bell className="h-4 w-4" />
-        </motion.button>
-
+    <DashboardTopBar
+      userInitial={userInitial}
+      profileSlot={
         <div className="relative">
           <motion.button
             whileHover={{ scale: 1.02 }}
@@ -57,16 +55,10 @@ export function DashboardHeader({
             type="button"
             onClick={onProfileClick}
             aria-expanded={profileOpen}
-            aria-label="Open profile information"
-            className="flex items-center gap-3 rounded-2xl bg-white px-3 py-2 text-left shadow-sm transition hover:bg-slate-50"
+            aria-label={`Open profile information for ${userName}`}
+            className={`${topBarAvatarChipClass} transition-colors hover:bg-slate-50`}
           >
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#f8e7bf] text-sm font-bold text-[#0e2a5c]">
-              {userInitial.toUpperCase()}
-            </div>
-            <div className="leading-tight">
-              <p className="text-sm font-semibold text-slate-800">Hello, {userName}</p>
-              <p className="text-xs text-slate-500">Welcome To Dashboard</p>
-            </div>
+            <span className={topBarAvatarClass}>{userInitial.toUpperCase()}</span>
           </motion.button>
 
           {profileOpen && (
@@ -152,7 +144,7 @@ export function DashboardHeader({
             </motion.div>
           )}
         </div>
-      </div>
-    </motion.div>
+      }
+    />
   );
 }

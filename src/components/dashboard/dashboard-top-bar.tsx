@@ -1,14 +1,27 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import { Bell } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { DashboardNavigation } from './dashboard-navigation';
 
+/** Shared avatar chip classes, so an interactive trigger can match the static chip. */
+export const topBarAvatarChipClass =
+  'flex items-center gap-2 rounded-2xl bg-white px-3 py-2 shadow-sm';
+export const topBarAvatarClass =
+  'flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-slate-700';
+
 interface DashboardTopBarProps {
   userInitial: string;
+  /**
+   * Replaces the static avatar chip when a page needs an interactive profile
+   * section (see `DashboardHeader`). Keeping it a slot means the sticky shell,
+   * navigation and notification button exist in exactly one place.
+   */
+  profileSlot?: ReactNode;
 }
 
-export function DashboardTopBar({ userInitial }: DashboardTopBarProps) {
+export function DashboardTopBar({ userInitial, profileSlot }: DashboardTopBarProps) {
   return (
     <header className="sticky top-0 z-30 mb-6 flex min-h-16 items-center justify-between gap-6 border-b border-slate-200 bg-white px-1 pb-3">
       <div className="min-w-0 flex-1">
@@ -24,11 +37,11 @@ export function DashboardTopBar({ userInitial }: DashboardTopBarProps) {
         >
           <Bell className="h-4 w-4" />
         </motion.button>
-        <div className="flex items-center gap-2 rounded-2xl bg-white px-3 py-2 shadow-sm">
-          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-slate-700">
-            {userInitial.toUpperCase()}
-          </span>
-        </div>
+        {profileSlot ?? (
+          <div className={topBarAvatarChipClass}>
+            <span className={topBarAvatarClass}>{userInitial.toUpperCase()}</span>
+          </div>
+        )}
       </div>
     </header>
   );

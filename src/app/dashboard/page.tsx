@@ -134,6 +134,7 @@ export default function DashboardPage() {
                   <div key={i} className="h-28 animate-pulse rounded-2xl bg-white" />
                 ))}
               </div>
+              <div className="h-40 animate-pulse rounded-2xl bg-white" />
             </div>
             <div className="min-w-0 space-y-5">
               <div className="h-72 animate-pulse rounded-2xl bg-white" />
@@ -202,7 +203,7 @@ export default function DashboardPage() {
 
         {/* Collapsing to one column stacks these wrappers in DOM order, which gives the
             required mobile sequence: financial card, transfer limits, income/expense/net,
-            recent transactions, cash-flow chart. */}
+            account overview, recent transactions, cash-flow chart. */}
         <div className={columnsClass}>
           <motion.div className="min-w-0 space-y-5">
             <motion.div variants={itemVariants}>
@@ -221,6 +222,10 @@ export default function DashboardPage() {
             <motion.div variants={itemVariants}>
               <CashFlowSummaryCards cashFlow={dashboard.cashFlow} />
             </motion.div>
+
+            <motion.div variants={itemVariants}>
+              <AccountOverviewCard accountOverview={dashboard.accountOverview} />
+            </motion.div>
           </motion.div>
 
           <motion.div className="min-w-0 space-y-5">
@@ -230,10 +235,6 @@ export default function DashboardPage() {
 
             <motion.div variants={itemVariants}>
               <CashFlowChartCard cashFlow={dashboard.cashFlow} />
-            </motion.div>
-
-            <motion.div variants={itemVariants}>
-              <AccountOverviewCard accountOverview={dashboard.accountOverview} />
             </motion.div>
           </motion.div>
         </div>
