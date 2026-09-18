@@ -12,10 +12,8 @@ import {
   X,
 } from "lucide-react";
 
-import { authApi } from "@/features/auth/api";
 import { dashboardApi } from "@/features/dashboard/api";
 import type {
-  MeResponse,
   TransactionDetail,
   TransactionItem,
   TransactionsResponse,
@@ -23,8 +21,6 @@ import type {
   TransactionType,
   WalletResponse,
 } from "@/features/dashboard/types";
-import { useAuthStore } from "@/store/auth-store";
-import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -101,9 +97,6 @@ export default function AnalysisPage() {
   const [transactions, setTransactions] = useState<TransactionItem[]>([]);
   const [pagination, setPagination] = useState<TransactionsResponse["pagination"] | null>(null);
   const [wallet, setWallet] = useState<WalletResponse | null>(null);
-  const [profile, setProfile] = useState<MeResponse | null>(null);
-  const [profileOpen, setProfileOpen] = useState(false);
-  const [logoutLoading, setLogoutLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [listLoading, setListLoading] = useState(false);
   const [error, setError] = useState("");
@@ -116,14 +109,6 @@ export default function AnalysisPage() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState("");
   const skipNextListLoad = useRef(false);
-  const refreshToken = useAuthStore((state) => state.refreshToken);
-  const clearTokens = useAuthStore((state) => state.clearTokens);
-
-  const userName = useMemo(() => {
-    if (profile) return `${profile.firstName ?? ""} ${profile.lastName ?? ""}`.trim() || "User";
-    return `${wallet?.user.firstName ?? ""} ${wallet?.user.lastName ?? ""}`.trim() || "User";
-  }, [profile, wallet]);
-  const userInitial = userName.charAt(0) || "U";
 
   const loadTransactions = useCallback(async (currentPage: number, currentSearch: string, currentType: TransactionType | "", currentStatus: TransactionStatus | "") => {
     const response = await dashboardApi.getTransactions({
@@ -155,12 +140,6 @@ export default function AnalysisPage() {
           dashboardApi.getWallet(),
         ]);
         if (active) setWallet(walletResponse);
-
-        void dashboardApi.getMe().then((profileResponse) => {
-          if (active) setProfile(profileResponse);
-        }).catch((profileError) => {
-          console.error("Unable to load profile", profileError);
-        });
       } catch (err) {
         if (active) setError(err instanceof Error ? err.message : "Unable to load account mutations");
       } finally {
@@ -260,44 +239,10 @@ export default function AnalysisPage() {
     setDetailLoading(false);
   };
 
-  const handleLogout = async () => {
-    if (logoutLoading) return;
-
-    setLogoutLoading(true);
-    try {
-      if (refreshToken) await authApi.logout(refreshToken);
-    } catch (err) {
-      console.error("Logout request failed", err);
-    } finally {
-      clearTokens();
-      router.replace("/");
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-[#ededed] grayscale">
-      <div className="flex min-h-screen w-full overflow-hidden bg-white">
-        <main className="min-h-screen flex-1 overflow-y-auto bg-white px-4 py-4 sm:px-6 sm:py-5">
-          <DashboardHeader
-            userName={userName}
-            userInitial={userInitial}
-            onProfileClick={() => setProfileOpen((isOpen) => !isOpen)}
-            profileOpen={profileOpen}
-            profileData={
-              profile
-                ? {
-                    email: profile.email,
-                    phoneNumber: profile.phoneNumber,
-                    accountActive: profile.account.isActive,
-                    emailVerified: profile.account.isEmailVerified,
-                    kycStatus: profile.kyc.status,
-                  }
-                : undefined
-            }
-            onLogout={handleLogout}
-            logoutLoading={logoutLoading}
-          />
-
+    <div className="flex flex-1 flex-col bg-[#ededed] grayscale">
+      <div className="flex w-full flex-1 flex-col bg-white">
+        <main className="min-w-0 flex-1 bg-white px-4 py-4 sm:px-6 sm:py-5">
           <div className="w-full space-y-6">
             <header>
               <p className="text-sm font-semibold text-slate-600">Financial overview</p>

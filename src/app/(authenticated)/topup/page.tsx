@@ -4,11 +4,10 @@ import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, CheckCircle2, Copy, ExternalLink } from "lucide-react";
 
-import { DashboardTopBar } from "@/components/dashboard/dashboard-top-bar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { dashboardApi } from "@/features/dashboard/api";
-import type { MeResponse, TopUpPaymentResponse, WalletResponse } from "@/features/dashboard/types";
+import type { TopUpPaymentResponse, WalletResponse } from "@/features/dashboard/types";
 
 const MINIMUM_TOP_UP = 1_000;
 const MAXIMUM_TOP_UP = 10_000_000;
@@ -36,7 +35,6 @@ function formatAmount(value: number) {
 export default function TopUpPage() {
   const router = useRouter();
   const [wallet, setWallet] = useState<WalletResponse | null>(null);
-  const [profile, setProfile] = useState<MeResponse | null>(null);
   const [amount, setAmount] = useState(100_000);
   const [paymentMethod, setPaymentMethod] = useState("qris");
   const [payment, setPayment] = useState<TopUpPaymentResponse | null>(null);
@@ -51,11 +49,9 @@ export default function TopUpPage() {
       return;
     }
 
-    Promise.all([dashboardApi.getWallet(), dashboardApi.getMe()])
-      .then(([walletResponse, profileResponse]) => {
-        setWallet(walletResponse);
-        setProfile(profileResponse);
-      })
+    dashboardApi
+      .getWallet()
+      .then(setWallet)
       .catch((err) => setError(err instanceof Error ? err.message : "Unable to load wallet"))
       .finally(() => setLoading(false));
   }, [router]);
@@ -93,19 +89,16 @@ export default function TopUpPage() {
   };
 
   if (loading) {
-    return <div className="flex min-h-screen items-center justify-center bg-white text-slate-700">Loading wallet...</div>;
+    return <div className="flex flex-1 items-center justify-center bg-white text-slate-700">Loading wallet...</div>;
   }
 
-  const name = `${profile?.firstName ?? ""} ${profile?.lastName ?? ""}`.trim() || "User";
   const sliderAmount = Math.min(Math.max(amount, MINIMUM_TOP_UP), MAXIMUM_TOP_UP);
   const sliderProgress = ((sliderAmount - MINIMUM_TOP_UP) / (MAXIMUM_TOP_UP - MINIMUM_TOP_UP)) * 100;
 
   return (
-    <div className="min-h-screen bg-[#ededed] grayscale">
-      <div className="min-h-screen w-full bg-white">
-        <main className="min-h-screen min-w-0 flex-1 px-4 py-4 sm:px-6 sm:py-5">
-          <DashboardTopBar userInitial={name.charAt(0)} />
-
+    <div className="flex flex-1 flex-col bg-[#ededed] grayscale">
+      <div className="flex w-full flex-1 flex-col bg-white">
+        <main className="min-w-0 flex-1 px-4 py-4 sm:px-6 sm:py-5">
           <div className="mx-auto w-full max-w-3xl pb-8 sm:pb-12">
             <div className="mb-6 flex items-center gap-3">
               <Button

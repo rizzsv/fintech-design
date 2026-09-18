@@ -4,11 +4,10 @@ import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, CheckCircle2, Send } from "lucide-react";
 
-import { DashboardTopBar } from "@/components/dashboard/dashboard-top-bar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { dashboardApi } from "@/features/dashboard/api";
-import type { MeResponse, TransferResponse, WalletResponse } from "@/features/dashboard/types";
+import type { TransferResponse, WalletResponse } from "@/features/dashboard/types";
 
 const TRANSFER_FEE = 2500;
 
@@ -27,7 +26,6 @@ function isUuid(value: string) {
 export default function TransferPage() {
   const router = useRouter();
   const [wallet, setWallet] = useState<WalletResponse | null>(null);
-  const [profile, setProfile] = useState<MeResponse | null>(null);
   const [recipient, setRecipient] = useState("");
   const [amount, setAmount] = useState("100000");
   const [description, setDescription] = useState("");
@@ -43,11 +41,9 @@ export default function TransferPage() {
       return;
     }
 
-    Promise.all([dashboardApi.getWallet(), dashboardApi.getMe()])
-      .then(([walletResponse, profileResponse]) => {
-        setWallet(walletResponse);
-        setProfile(profileResponse);
-      })
+    dashboardApi
+      .getWallet()
+      .then(setWallet)
       .catch((err) => setError(err instanceof Error ? err.message : "Unable to load wallet"))
       .finally(() => setLoading(false));
   }, [router]);
@@ -55,7 +51,6 @@ export default function TransferPage() {
   const fee = TRANSFER_FEE;
   const parsedAmount = amount === "" ? 0 : Number(amount);
   const totalDebit = parsedAmount + fee;
-  const name = `${profile?.firstName ?? ""} ${profile?.lastName ?? ""}`.trim() || "User";
   const activeStep = confirmation ? 3 : recipient.trim() ? 2 : 1;
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -90,7 +85,7 @@ export default function TransferPage() {
   };
 
   if (loading) {
-    return <div className="flex min-h-screen items-center justify-center bg-white text-slate-700">Loading wallet...</div>;
+    return <div className="flex flex-1 items-center justify-center bg-white text-slate-700">Loading wallet...</div>;
   }
 
   const guideSteps = [
@@ -109,11 +104,9 @@ export default function TransferPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#ededed] grayscale">
-      <div className="min-h-screen w-full bg-white">
-        <main className="min-h-screen min-w-0 flex-1 px-4 py-4 sm:px-6 sm:py-5">
-          <DashboardTopBar userInitial={name.charAt(0)} />
-
+    <div className="flex flex-1 flex-col bg-[#ededed] grayscale">
+      <div className="flex w-full flex-1 flex-col bg-white">
+        <main className="min-w-0 flex-1 px-4 py-4 sm:px-6 sm:py-5">
           <div className="mx-auto w-full max-w-7xl pb-8 sm:pb-12">
             <div className="mb-8 flex items-center gap-3 sm:mb-12">
               <Button

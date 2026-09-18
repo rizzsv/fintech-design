@@ -1,15 +1,12 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 
-import { authApi } from '@/features/auth/api';
 import { dashboardApi } from '@/features/dashboard/api';
-import type { DashboardResponse, MeResponse } from '@/features/dashboard/types';
-import { useAuthStore } from '@/store/auth-store';
+import type { DashboardResponse } from '@/features/dashboard/types';
 
-import { DashboardHeader } from '@/components/dashboard/dashboard-header';
 import { FinancialOverviewCard } from '@/components/dashboard/financial-overview-card';
 import { TransferLimitsCard } from '@/components/dashboard/transfer-limits-card';
 import { CashFlowSummaryCards } from '@/components/dashboard/cash-flow-summary-cards';
@@ -22,11 +19,6 @@ export default function DashboardPage() {
   const [dashboard, setDashboard] = useState<DashboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [profile, setProfile] = useState<MeResponse | null>(null);
-  const [profileOpen, setProfileOpen] = useState(false);
-  const [logoutLoading, setLogoutLoading] = useState(false);
-  const refreshToken = useAuthStore((state) => state.refreshToken);
-  const clearTokens = useAuthStore((state) => state.clearTokens);
 
   useEffect(() => {
     const token = localStorage.getItem('accessToken');
@@ -47,50 +39,8 @@ export default function DashboardPage() {
       }
     };
 
-    // Only feeds the header dropdown; a failure here leaves `profileData` undefined
-    // rather than blocking the dashboard, which comes from a separate request.
-    const fetchAccountStatus = async () => {
-      try {
-        const me = await dashboardApi.getMe();
-        setProfile(me);
-      } catch (err) {
-        console.error('Account status request failed', err);
-      }
-    };
-
     fetchDashboard();
-    fetchAccountStatus();
   }, [router]);
-
-  const userName = useMemo(
-    () => `${dashboard?.user.firstName ?? ''} ${dashboard?.user.lastName ?? ''}`.trim() || 'User',
-    [dashboard],
-  );
-
-  const userInitial = useMemo(() => userName.charAt(0) || 'U', [userName]);
-
-  const handleProfileToggle = () => {
-    setProfileOpen((isOpen) => !isOpen);
-  };
-
-  const handleLogout = async () => {
-    if (logoutLoading) {
-      return;
-    }
-
-    setLogoutLoading(true);
-
-    try {
-      if (refreshToken) {
-        await authApi.logout(refreshToken);
-      }
-    } catch (err) {
-      console.error('Logout request failed', err);
-    } finally {
-      clearTokens();
-      router.replace('/');
-    }
-  };
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -122,9 +72,8 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#F5F5F5]">
+      <div className="flex flex-1 flex-col bg-[#F5F5F5]">
         <main className="mx-auto w-full max-w-[1600px] px-4 py-4 sm:px-6 sm:py-5">
-          <div className="mb-5 h-12 w-full animate-pulse rounded-2xl bg-white" />
           <div className={columnsClass}>
             <div className="min-w-0 space-y-5">
               <div className="h-64 animate-pulse rounded-2xl bg-white" />
@@ -148,7 +97,7 @@ export default function DashboardPage() {
 
   if (error) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F5F5F5] px-6">
+      <div className="flex flex-1 items-center justify-center bg-[#F5F5F5] px-6">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -174,33 +123,13 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F5F5F5]">
+    <div className="flex flex-1 flex-col bg-[#F5F5F5]">
       <motion.main
         initial="hidden"
         animate="visible"
         variants={containerVariants}
         className="mx-auto w-full max-w-[1600px] px-4 py-4 sm:px-6 sm:py-5"
       >
-        <DashboardHeader
-          userName={userName}
-          userInitial={userInitial}
-          onProfileClick={handleProfileToggle}
-          profileOpen={profileOpen}
-          profileData={
-            profile
-              ? {
-                  email: profile.email,
-                  phoneNumber: profile.phoneNumber,
-                  accountActive: profile.account.isActive,
-                  emailVerified: profile.account.isEmailVerified,
-                  kycStatus: profile.kyc.status,
-                }
-              : undefined
-          }
-          onLogout={handleLogout}
-          logoutLoading={logoutLoading}
-        />
-
         {/* Collapsing to one column stacks these wrappers in DOM order, which gives the
             required mobile sequence: financial card, transfer limits, income/expense/net,
             account overview, recent transactions, cash-flow chart. */}
