@@ -1,6 +1,6 @@
 'use client';
 
-import { BarChart3, Home, Send, Wallet2 } from 'lucide-react';
+import { ArrowDownToLine, BarChart3, Home, Send, Settings, Wallet2 } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 
@@ -11,8 +11,10 @@ import { motion } from 'framer-motion';
 const navItems = [
   { icon: Home, path: '/dashboard', label: 'Dashboard' },
   { icon: BarChart3, path: '/analysis', label: 'Mutasi' },
-  { icon: Wallet2, path: '/topup', label: 'Wallet' },
+  { icon: Wallet2, path: '/topup', label: 'Top Up' },
   { icon: Send, path: '/transfer', label: 'Transfer' },
+  { icon: ArrowDownToLine, path: '/withdrawal', label: 'Withdraw' },
+  { icon: Settings, path: '/settings', label: 'Settings' },
 ];
 
 export function AppNav() {

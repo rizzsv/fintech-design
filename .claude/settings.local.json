@@ -24,5 +24,9 @@
       "Bash(grep -h \"DATABASE_URL\" .env*)",
       "Bash(docker exec fintech-postgres psql -U postgres -d fintech -c \"select table_schema, table_name from information_schema.tables where table_schema not in \\(''pg_catalog'',''information_schema''\\) limit 30;\")"
     ]
-  }
+  },
+  "enabledMcpjsonServers": [
+    "shadcn"
+  ],
+  "enableAllProjectMcpServers": true
 }
