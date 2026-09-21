@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { motion, type Variants } from 'framer-motion';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp } from 'lucide-react';
 
 export interface WidgetGridItem<TId extends string, TSize extends string> {
   id: TId;
@@ -10,6 +10,10 @@ export interface WidgetGridItem<TId extends string, TSize extends string> {
   label: string;
   size: TSize;
   sizeOptions: readonly { value: TSize; label: string }[];
+  /** Index of the column stack this item belongs to. Ignored while `fullWidth`. */
+  column: number;
+  /** Renders in a row of its own across every column instead of inside a stack. */
+  fullWidth: boolean;
   /** Pre-resolved grid span classes - the grid never builds class names itself. */
   spanClassName: string;
   content: ReactNode;
@@ -23,10 +27,61 @@ interface DraggableWidgetGridProps<TId extends string, TSize extends string> {
    * finished, because `layout` and an animated `y` fight over the same transform.
    */
   layoutReady?: boolean;
+  /** Number of stacks to render; has to match the tracks in `columnsClassName`. */
+  columnCount: number;
   columnsClassName: string;
+  /** Classes for one column stack. Its gap has to match the grid's own gap. */
+  stackClassName: string;
   itemVariants?: Variants;
-  onReorder: (from: number, to: number) => void;
+  onReorder: (from: number, to: number, column?: number) => void;
   onResize: (id: TId, size: TSize) => void;
+}
+
+interface PlacedItem<TId extends string, TSize extends string> {
+  item: WidgetGridItem<TId, TSize>;
+  /** Index in the flat `items` order, which is what `onReorder` speaks. */
+  index: number;
+}
+
+/**
+ * A band is one row of the outer grid: either a set of independently stacked
+ * columns or a single full-width item.
+ */
+type Band<TId extends string, TSize extends string> =
+  | { kind: 'columns'; columns: PlacedItem<TId, TSize>[][] }
+  | { kind: 'full'; placed: PlacedItem<TId, TSize> };
+
+/**
+ * Splits the flat order into bands: every full-width item closes the band before
+ * it and gets a row to itself, so column stacks only ever pack against items that
+ * share their band.
+ */
+function buildBands<TId extends string, TSize extends string>(
+  items: readonly WidgetGridItem<TId, TSize>[],
+  columnCount: number,
+): Band<TId, TSize>[] {
+  const bands: Band<TId, TSize>[] = [];
+  let open: PlacedItem<TId, TSize>[][] | null = null;
+
+  items.forEach((item, index) => {
+    if (item.fullWidth) {
+      open = null;
+      bands.push({ kind: 'full', placed: { item, index } });
+      return;
+    }
+
+    let columns = open;
+
+    if (!columns) {
+      columns = Array.from({ length: columnCount }, () => []);
+      open = columns;
+      bands.push({ kind: 'columns', columns });
+    }
+
+    columns[Math.min(Math.max(item.column, 0), columnCount - 1)].push({ item, index });
+  });
+
+  return bands;
 }
 
 function pointerPosition(
@@ -45,13 +100,6 @@ function contains(rect: DOMRect, x: number, y: number): boolean {
   return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
 }
 
-/** Arrow keys step one position in the flat widget order, along either axis. */
-function arrowDelta(key: string): number | null {
-  if (key === 'ArrowUp' || key === 'ArrowLeft') return -1;
-  if (key === 'ArrowDown' || key === 'ArrowRight') return 1;
-  return null;
-}
-
 // Colours live in the variants, never in the base: two competing `bg-*` utilities
 // on one element resolve by stylesheet order, not by concatenation order, so a
 // base `bg-white` would beat the active `bg-black` and hide its white label.
@@ -60,28 +108,39 @@ const CONTROL_BASE =
 const CONTROL_IDLE = 'bg-white text-[#6B7280] hover:bg-[#F5F5F5] hover:text-[#111827]';
 const CONTROL_ACTIVE = 'bg-black text-white hover:bg-slate-800';
 
+type MoveAction = 'earlier' | 'later' | 'previous-column' | 'next-column';
+
 /**
- * Reorderable/resizable grid. Deliberately knows nothing about the data it
- * renders: callers supply the content, a span class per item and the sizes each
- * item accepts, so the same grid works for any widget set.
+ * Reorderable/resizable widget board. Deliberately knows nothing about the data it
+ * renders: callers supply the content, the column each item sits in and the sizes
+ * each item accepts, so the same board works for any widget set.
+ *
+ * Columns are independent stacks rather than rows of one shared grid: shared rows
+ * make a tall card in one column inflate its neighbour's row tracks, which leaves
+ * dead space nothing can reclaim.
  *
  * Pointer users drag a whole card; keyboard and screen-reader users get explicit
- * move buttons on every card, which also accept the arrow keys. Both paths go
+ * move controls on every card, which also accept the arrow keys. Both paths go
  * through `onReorder`, so there is one reordering code path.
  */
 export function DraggableWidgetGrid<TId extends string, TSize extends string>({
   items,
   editing,
   layoutReady = false,
+  columnCount,
   columnsClassName,
+  stackClassName,
   itemVariants,
   onReorder,
   onResize,
 }: DraggableWidgetGridProps<TId, TSize>) {
+  const gridRef = useRef<HTMLDivElement | null>(null);
   const cellsRef = useRef(new Map<string, HTMLDivElement>());
   const rectsRef = useRef<{ id: string; rect: DOMRect }[]>([]);
   /** Blocks further hit-testing until the committed order has been re-measured. */
   const lockedRef = useRef(false);
+  /** Control to re-focus after a move that moved its card to another stack. */
+  const pendingFocusRef = useRef<{ id: string; action: MoveAction } | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [announcement, setAnnouncement] = useState('');
 
@@ -93,6 +152,16 @@ export function DraggableWidgetGrid<TId extends string, TSize extends string>({
     });
 
     rectsRef.current = rects;
+  }, []);
+
+  // Registration goes through a callback rather than an inline ref body so no ref is
+  // read from the render path, not even inside a closure the renderer only defines.
+  const registerCell = useCallback((id: string, node: HTMLDivElement | null) => {
+    if (node) {
+      cellsRef.current.set(id, node);
+    } else {
+      cellsRef.current.delete(id);
+    }
   }, []);
 
   // Re-measure after every committed reorder, so the next hit-test uses the new
@@ -110,13 +179,59 @@ export function DraggableWidgetGrid<TId extends string, TSize extends string>({
     return () => cancelAnimationFrame(frame);
   }, [items, draggingId, measureCells]);
 
-  const move = (label: string, from: number, to: number) => {
-    if (from < 0 || to < 0 || to >= items.length || from === to) {
+  // Moving a card to another column re-parents it, which React does by remounting the
+  // cell - the control the keyboard user pressed is destroyed with it and focus falls
+  // back to the body, so arrow-key reordering would stop after a single step.
+  //
+  // The control is looked up in the DOM rather than kept in a ref map on purpose: the
+  // remount deletes and recreates the same map key in the same commit, so a map
+  // cannot be relied on to hold the live node by the time this runs.
+  useEffect(() => {
+    const pending = pendingFocusRef.current;
+
+    if (!pending) {
       return;
     }
 
-    onReorder(from, to);
-    setAnnouncement(`${label} moved to position ${to + 1} of ${items.length}`);
+    pendingFocusRef.current = null;
+
+    const find = (action: MoveAction) =>
+      gridRef.current?.querySelector<HTMLButtonElement>(
+        `[data-widget-control="${pending.id}|${action}"]`,
+      ) ?? null;
+
+    // A cross-column move can land the card in the last column, which disables the
+    // control that was just used; focus then goes to the card's vertical controls so
+    // the keyboard user keeps a hold on the same card.
+    const candidates: MoveAction[] =
+      pending.action === 'earlier' || pending.action === 'later'
+        ? [pending.action, pending.action === 'later' ? 'earlier' : 'later']
+        : [pending.action, pending.action === 'next-column' ? 'previous-column' : 'next-column'];
+
+    for (const action of candidates) {
+      const target = find(action);
+
+      if (target && !target.disabled) {
+        if (target !== document.activeElement) {
+          target.focus();
+        }
+
+        return;
+      }
+    }
+  }, [items]);
+
+  const requestMove = (
+    id: string,
+    action: MoveAction,
+    from: number,
+    to: number,
+    column: number | undefined,
+    message: string,
+  ) => {
+    pendingFocusRef.current = { id, action };
+    onReorder(from, to, column);
+    setAnnouncement(message);
   };
 
   const handleDragStart = (id: string) => {
@@ -152,7 +267,10 @@ export function DraggableWidgetGrid<TId extends string, TSize extends string>({
     }
 
     lockedRef.current = true;
-    onReorder(from, to);
+    // The card takes over the column of whatever it was dropped on, so a drag
+    // across the board moves between stacks as well as within one.
+    const target = items[to];
+    onReorder(from, to, target.fullWidth || items[from].fullWidth ? undefined : target.column);
   };
 
   const handleDragEnd = (id: string, label: string) => {
@@ -166,123 +284,237 @@ export function DraggableWidgetGrid<TId extends string, TSize extends string>({
     }
   };
 
-  const handleMoveKeyDown = (
-    event: KeyboardEvent<HTMLButtonElement>,
-    label: string,
-    index: number,
+  const bands = buildBands(items, columnCount);
+
+  const renderCell = (
+    placed: PlacedItem<TId, TSize>,
+    siblings: readonly PlacedItem<TId, TSize>[],
   ) => {
-    const delta = arrowDelta(event.key);
+    const { item, index } = placed;
+    const position = siblings.findIndex((sibling) => sibling.item.id === item.id);
 
-    if (delta === null) {
-      return;
-    }
+    // A full-width card has no stack to move inside, so it steps through the flat
+    // order instead - which is what carries it past the bands around it.
+    const earlier = item.fullWidth
+      ? index > 0
+        ? index - 1
+        : null
+      : position > 0
+        ? siblings[position - 1].index
+        : null;
+    const later = item.fullWidth
+      ? index < items.length - 1
+        ? index + 1
+        : null
+      : position < siblings.length - 1
+        ? siblings[position + 1].index
+        : null;
+    const previousColumn = !item.fullWidth && item.column > 0 ? item.column - 1 : null;
+    const nextColumn = !item.fullWidth && item.column < columnCount - 1 ? item.column + 1 : null;
 
-    // Otherwise the arrow keys scroll the page instead of moving the card.
-    event.preventDefault();
-    move(label, index, index + delta);
+    const where = item.fullWidth
+      ? `position ${index + 1} of ${items.length}`
+      : `column ${item.column + 1}`;
+
+    // A disabled control must still say what it would have done: naming the column it
+    // cannot reach would repeat the label of the control pointing the other way.
+    const columnLabel = (target: number | null, direction: 'previous' | 'next') =>
+      target === null
+        ? `Move ${item.label} to the ${direction} column`
+        : `Move ${item.label} to column ${target + 1}`;
+
+    const moveVertically = (action: 'earlier' | 'later') => {
+      const to = action === 'earlier' ? earlier : later;
+
+      if (to === null) {
+        return;
+      }
+
+      const nextPosition = item.fullWidth
+        ? to + 1
+        : (action === 'earlier' ? position - 1 : position + 1) + 1;
+      const total = item.fullWidth ? items.length : siblings.length;
+
+      requestMove(
+        item.id,
+        action,
+        index,
+        to,
+        undefined,
+        `${item.label} moved to position ${nextPosition} of ${total}${
+          item.fullWidth ? '' : ` in column ${item.column + 1}`
+        }`,
+      );
+    };
+
+    const moveToColumn = (action: 'previous-column' | 'next-column') => {
+      const column = action === 'previous-column' ? previousColumn : nextColumn;
+
+      if (column === null) {
+        return;
+      }
+
+      requestMove(
+        item.id,
+        action,
+        index,
+        index,
+        column,
+        `${item.label} moved to column ${column + 1}`,
+      );
+    };
+
+    const handleMoveKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
+      if (event.key === 'ArrowUp') {
+        moveVertically('earlier');
+      } else if (event.key === 'ArrowDown') {
+        moveVertically('later');
+      } else if (event.key === 'ArrowLeft') {
+        moveToColumn('previous-column');
+      } else if (event.key === 'ArrowRight') {
+        moveToColumn('next-column');
+      } else {
+        return;
+      }
+
+      // Otherwise the arrow keys scroll the page instead of moving the card.
+      event.preventDefault();
+    };
+
+    return (
+      <motion.div
+        key={item.id}
+        ref={(node: HTMLDivElement | null) => registerCell(item.id, node)}
+        role="listitem"
+        variants={itemVariants}
+        layout={layoutReady}
+        drag={editing}
+        dragSnapToOrigin
+        dragMomentum={false}
+        dragElastic={0.12}
+        onDragStart={() => handleDragStart(item.id)}
+        onDrag={(event) => handleDrag(event, item.id)}
+        onDragEnd={() => handleDragEnd(item.id, item.label)}
+        whileDrag={
+          editing
+            ? { scale: 1.02, zIndex: 50, boxShadow: '0 18px 40px rgba(17, 24, 39, 0.16)' }
+            : undefined
+        }
+        className={`relative min-w-0 ${item.spanClassName} ${editing ? 'touch-none' : ''} ${
+          editing && draggingId !== item.id
+            ? 'rounded-2xl outline-2 outline-dashed outline-offset-2 outline-[#D1D5DB]'
+            : ''
+        }`}
+      >
+        {item.content}
+
+        {editing ? (
+          <>
+            {/* Covers the card so its own buttons and links cannot fire while
+                arranging, and makes the whole card the drag surface. */}
+            <div
+              aria-hidden="true"
+              className="absolute inset-0 z-10 cursor-grab rounded-2xl bg-white/55 active:cursor-grabbing"
+            />
+
+            <div className="absolute right-3 top-3 z-20 flex flex-wrap items-center justify-end gap-1">
+              <div
+                role="group"
+                aria-label={`Reorder ${item.label}`}
+                className="flex items-center gap-1"
+              >
+                <button
+                  type="button"
+                  data-widget-control={`${item.id}|earlier`}
+                  onClick={() => moveVertically('earlier')}
+                  onKeyDown={handleMoveKeyDown}
+                  disabled={earlier === null}
+                  aria-label={`Move ${item.label} up in ${where}`}
+                  className={`${CONTROL_BASE} ${CONTROL_IDLE} flex items-center`}
+                >
+                  <ChevronUp className="h-3.5 w-3.5" aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  data-widget-control={`${item.id}|later`}
+                  onClick={() => moveVertically('later')}
+                  onKeyDown={handleMoveKeyDown}
+                  disabled={later === null}
+                  aria-label={`Move ${item.label} down in ${where}`}
+                  className={`${CONTROL_BASE} ${CONTROL_IDLE} flex items-center`}
+                >
+                  <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  data-widget-control={`${item.id}|previous-column`}
+                  onClick={() => moveToColumn('previous-column')}
+                  onKeyDown={handleMoveKeyDown}
+                  disabled={previousColumn === null}
+                  aria-label={columnLabel(previousColumn, 'previous')}
+                  className={`${CONTROL_BASE} ${CONTROL_IDLE} flex items-center`}
+                >
+                  <ChevronLeft className="h-3.5 w-3.5" aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  data-widget-control={`${item.id}|next-column`}
+                  onClick={() => moveToColumn('next-column')}
+                  onKeyDown={handleMoveKeyDown}
+                  disabled={nextColumn === null}
+                  aria-label={columnLabel(nextColumn, 'next')}
+                  className={`${CONTROL_BASE} ${CONTROL_IDLE} flex items-center`}
+                >
+                  <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
+                </button>
+              </div>
+
+              {item.sizeOptions.length > 1 ? (
+                <div
+                  role="group"
+                  aria-label={`Size for ${item.label}`}
+                  className="flex items-center gap-1"
+                >
+                  {item.sizeOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => onResize(item.id, option.value)}
+                      aria-pressed={item.size === option.value}
+                      className={`${CONTROL_BASE} ${
+                        item.size === option.value ? CONTROL_ACTIVE : CONTROL_IDLE
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          </>
+        ) : null}
+      </motion.div>
+    );
   };
 
   return (
     <>
-      <div role="list" className={columnsClassName}>
-        {items.map((item, index) => (
-          <motion.div
-            key={item.id}
-            ref={(node: HTMLDivElement | null) => {
-              if (node) {
-                cellsRef.current.set(item.id, node);
-              } else {
-                cellsRef.current.delete(item.id);
-              }
-            }}
-            role="listitem"
-            variants={itemVariants}
-            layout={layoutReady}
-            drag={editing}
-            dragSnapToOrigin
-            dragMomentum={false}
-            dragElastic={0.12}
-            onDragStart={() => handleDragStart(item.id)}
-            onDrag={(event) => handleDrag(event, item.id)}
-            onDragEnd={() => handleDragEnd(item.id, item.label)}
-            whileDrag={
-              editing
-                ? { scale: 1.02, zIndex: 50, boxShadow: '0 18px 40px rgba(17, 24, 39, 0.16)' }
-                : undefined
-            }
-            className={`relative min-w-0 ${item.spanClassName} ${
-              editing ? 'touch-none' : ''
-            } ${
-              editing && draggingId !== item.id
-                ? 'rounded-2xl outline-2 outline-dashed outline-offset-2 outline-[#D1D5DB]'
-                : ''
-            }`}
-          >
-            {item.content}
-
-            {editing ? (
-              <>
-                {/* Covers the card so its own buttons and links cannot fire while
-                    arranging, and makes the whole card the drag surface. */}
+      <div ref={gridRef} role="list" className={columnsClassName}>
+        {bands.map((band, bandIndex) =>
+          band.kind === 'full'
+            ? renderCell(band.placed, [band.placed])
+            : band.columns.map((column, columnIndex) => (
+                // `presentation` keeps the stacks out of the accessibility tree, so
+                // the cells stay the list's own items.
                 <div
-                  aria-hidden="true"
-                  className="absolute inset-0 z-10 cursor-grab rounded-2xl bg-white/55 active:cursor-grabbing"
-                />
-
-                <div className="absolute right-3 top-3 z-20 flex flex-wrap items-center justify-end gap-1">
-                  <div
-                    role="group"
-                    aria-label={`Reorder ${item.label}`}
-                    className="flex items-center gap-1"
-                  >
-                    <button
-                      type="button"
-                      onClick={() => move(item.label, index, index - 1)}
-                      onKeyDown={(event) => handleMoveKeyDown(event, item.label, index)}
-                      disabled={index === 0}
-                      aria-label={`Move ${item.label} earlier`}
-                      className={`${CONTROL_BASE} ${CONTROL_IDLE} flex items-center`}
-                    >
-                      <ChevronUp className="h-3.5 w-3.5" aria-hidden="true" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => move(item.label, index, index + 1)}
-                      onKeyDown={(event) => handleMoveKeyDown(event, item.label, index)}
-                      disabled={index === items.length - 1}
-                      aria-label={`Move ${item.label} later`}
-                      className={`${CONTROL_BASE} ${CONTROL_IDLE} flex items-center`}
-                    >
-                      <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
-                    </button>
-                  </div>
-
-                  {item.sizeOptions.length > 1 ? (
-                    <div
-                      role="group"
-                      aria-label={`Size for ${item.label}`}
-                      className="flex items-center gap-1"
-                    >
-                      {item.sizeOptions.map((option) => (
-                        <button
-                          key={option.value}
-                          type="button"
-                          onClick={() => onResize(item.id, option.value)}
-                          aria-pressed={item.size === option.value}
-                          className={`${CONTROL_BASE} ${
-                            item.size === option.value ? CONTROL_ACTIVE : CONTROL_IDLE
-                          }`}
-                        >
-                          {option.label}
-                        </button>
-                      ))}
-                    </div>
-                  ) : null}
+                  key={`${bandIndex}-${columnIndex}`}
+                  role="presentation"
+                  className={stackClassName}
+                >
+                  {column.map((placed) => renderCell(placed, column))}
                 </div>
-              </>
-            ) : null}
-          </motion.div>
-        ))}
+              )),
+        )}
       </div>
 
       <p aria-live="polite" className="sr-only">

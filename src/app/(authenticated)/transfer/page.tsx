@@ -104,11 +104,11 @@ export default function TransferPage() {
   ];
 
   return (
-    <div className="flex flex-1 flex-col bg-[#ededed] grayscale">
-      <div className="flex w-full flex-1 flex-col bg-white">
-        <main className="min-w-0 flex-1 px-4 py-4 sm:px-6 sm:py-5">
-          <div className="mx-auto w-full max-w-7xl pb-8 sm:pb-12">
-            <div className="mb-8 flex items-center gap-3 sm:mb-12">
+    <div className="flex flex-1 flex-col bg-[#ededed] grayscale lg:h-[calc(100dvh-4rem)] lg:min-h-0 lg:overflow-hidden">
+      <main className="min-w-0 flex-1 bg-white px-4 py-4 sm:px-6 sm:py-5 lg:min-h-0 lg:overflow-hidden lg:py-4">
+        <div className="mx-auto grid h-full w-full max-w-[1400px] gap-6 lg:grid-cols-[minmax(0,0.78fr)_minmax(540px,1.12fr)] lg:items-center lg:gap-10 xl:gap-14">
+          <section aria-labelledby="transfer-guide-title" className="min-w-0 max-w-xl lg:flex lg:flex-col lg:py-1">
+            <div className="mb-6 flex items-center gap-3 lg:mb-5">
               <Button
                 type="button"
                 variant="outline"
@@ -120,22 +120,20 @@ export default function TransferPage() {
                 <ArrowLeft className="h-4 w-4" />
               </Button>
               <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.14em] text-sky-600">Payments</p>
-                <h1 className="text-2xl font-semibold text-slate-800">Transfer funds</h1>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-sky-600">Payments</p>
+                <h1 className="text-xl font-semibold text-slate-800 sm:text-2xl">Transfer funds</h1>
               </div>
             </div>
-
-            <div className="grid items-start gap-10 lg:grid-cols-[minmax(0,0.9fr)_minmax(430px,1.1fr)] lg:gap-16 xl:gap-24">
-              <section aria-labelledby="transfer-guide-title" className="max-w-xl py-2 lg:py-8">
-                <p className="text-base font-semibold text-violet-600">How it works</p>
-                <h2 id="transfer-guide-title" className="mt-3 text-3xl font-bold leading-tight tracking-tight text-[#0e2a5c] sm:text-4xl xl:text-5xl">
+            <div>
+                <p className="text-sm font-semibold text-violet-600">How it works</p>
+                <h2 id="transfer-guide-title" className="mt-2 text-2xl font-bold leading-tight tracking-tight text-[#0e2a5c] sm:text-3xl">
                   Send money with clarity at every step.
                 </h2>
                 <p className="mt-5 max-w-lg text-base leading-7 text-slate-600 sm:text-lg">
                   Review the recipient, amount, and total debit before your transfer is submitted.
                 </p>
 
-                <ol className="mt-10 space-y-8 sm:mt-14 sm:space-y-10">
+                <ol className="mt-7 space-y-5 sm:mt-8 sm:space-y-6 lg:mt-6 lg:space-y-4">
                   {guideSteps.map((step, index) => {
                     const stepNumber = index + 1;
                     const isActive = activeStep === stepNumber;
@@ -161,21 +159,22 @@ export default function TransferPage() {
                   })}
                 </ol>
 
-                <div className="mt-12 rounded-[24px] bg-[#0e2a5c] p-6 text-white shadow-sm">
+                <div className="mt-7 rounded-[24px] bg-[#0e2a5c] p-5 text-white shadow-sm lg:mt-6 lg:p-4">
                   <p className="text-sm font-medium text-blue-100">Available balance</p>
-                  <p className="mt-2 text-3xl font-bold tracking-tight">{formatCurrency(wallet?.balance ?? 0)}</p>
-                  <p className="mt-4 text-sm leading-6 text-blue-100">The final transfer checks remain in place when you submit.</p>
+                  <p className="mt-1 text-2xl font-bold tracking-tight">{formatCurrency(wallet?.balance ?? 0)}</p>
+                  <p className="mt-2 text-sm leading-5 text-blue-100">The final transfer checks remain in place when you submit.</p>
                 </div>
-              </section>
+            </div>
+          </section>
 
-              <section aria-labelledby="transfer-form-title" className="overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-[0_20px_50px_rgba(17,44,100,0.12)]">
-                <div className="bg-[#0e2a5c] px-6 py-7 text-white sm:px-9 sm:py-8">
+          <section aria-labelledby="transfer-form-title" className="min-w-0 overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_16px_40px_rgba(17,44,100,0.12)] lg:justify-self-end lg:w-full lg:max-w-[680px]">
+                <div className="bg-[#0e2a5c] px-6 py-7 text-white sm:px-9 sm:py-8 lg:px-6 lg:py-3">
                   <p className="text-sm font-medium text-blue-100">Secure wallet transfer</p>
-                  <h2 id="transfer-form-title" className="mt-2 text-2xl font-bold">Send money</h2>
-                  <p className="mt-2 text-sm leading-6 text-blue-100">Complete the details below to continue.</p>
+                  <h2 id="transfer-form-title" className="mt-1 text-xl font-bold">Send money</h2>
+                  <p className="mt-1 text-sm leading-5 text-blue-100">Complete the details below to continue.</p>
                 </div>
 
-                <div className="px-5 py-7 sm:px-9 sm:py-9">
+                <div className="px-5 py-7 sm:px-9 sm:py-9 lg:px-6 lg:py-4">
                   {result ? (
                     <div className="space-y-5">
                       <div className="flex items-start gap-3 rounded-2xl bg-emerald-50 p-4 text-emerald-800">
@@ -193,22 +192,22 @@ export default function TransferPage() {
                       <Button type="button" variant="outline" onClick={() => { setResult(null); setConfirmation(false); }} className="h-12 w-full rounded-full">Make another transfer</Button>
                     </div>
                   ) : (
-                    <form onSubmit={handleSubmit} className="space-y-6">
+                    <form onSubmit={handleSubmit} className="space-y-6 lg:space-y-3.5">
                       <div>
-                        <label htmlFor="recipient-wallet" className="mb-2 block text-sm font-semibold text-[#0e2a5c]">Recipient wallet ID</label>
+                        <label htmlFor="recipient-wallet" className="mb-2 block text-sm font-semibold text-[#0e2a5c] lg:mb-1.5">Recipient wallet ID</label>
                         <Input
                           id="recipient-wallet"
                           value={recipient}
                           onChange={(event) => { setRecipient(event.target.value); setError(""); }}
                           placeholder="5a044e27-ae12-4bf7-ab37-871a8ec1ad68"
-                          className="h-13 rounded-xl bg-white px-4 font-mono text-sm shadow-none"
+                          className="h-12 rounded-xl bg-white px-4 font-mono text-sm shadow-none"
                           aria-describedby="recipient-help"
                         />
-                        <p id="recipient-help" className="mt-2 text-xs leading-5 text-slate-500">Use the recipient&apos;s wallet ID.</p>
+                        <p id="recipient-help" className="mt-2 text-xs leading-5 text-slate-500 lg:mt-1 lg:leading-4">Use the recipient&apos;s wallet ID.</p>
                       </div>
 
                       <div>
-                        <label htmlFor="transfer-amount" className="mb-2 block text-sm font-semibold text-[#0e2a5c]">Amount</label>
+                        <label htmlFor="transfer-amount" className="mb-2 block text-sm font-semibold text-[#0e2a5c] lg:mb-1.5">Amount</label>
                         <div className="flex items-center rounded-xl border border-slate-200 bg-white px-4 transition-colors focus-within:border-sky-400 focus-within:ring-2 focus-within:ring-sky-200">
                           <span className="text-slate-500">Rp</span>
                           <input
@@ -222,49 +221,50 @@ export default function TransferPage() {
                               setAmount(digitsOnly.replace(/^0+(?=\d)/, ""));
                               setError("");
                             }}
-                            className="h-13 w-full border-0 bg-transparent px-3 text-lg font-semibold text-slate-800 outline-none"
+                            className="h-12 w-full border-0 bg-transparent px-3 text-base font-semibold text-slate-800 outline-none"
                             aria-describedby="amount-help"
                           />
                         </div>
-                        <p id="amount-help" className="mt-2 text-xs leading-5 text-slate-500">Enter a whole IDR amount. Minimum Rp1.</p>
+                        <p id="amount-help" className="mt-2 text-xs leading-5 text-slate-500 lg:mt-1 lg:leading-4">Enter a whole IDR amount. Minimum Rp1.</p>
                       </div>
 
                       <div>
-                        <label htmlFor="transfer-description" className="mb-2 block text-sm font-semibold text-[#0e2a5c]">Description <span className="font-normal text-slate-400">(optional)</span></label>
+                        <label htmlFor="transfer-description" className="mb-2 block text-sm font-semibold text-[#0e2a5c] lg:mb-1.5">Description <span className="font-normal text-slate-400">(optional)</span></label>
                         <Input
                           id="transfer-description"
                           value={description}
                           onChange={(event) => setDescription(event.target.value)}
                           maxLength={255}
                           placeholder="Lunch, rent, or other note"
-                          className="h-13 rounded-xl bg-white px-4 text-sm shadow-none"
+                          className="h-12 rounded-xl bg-white px-4 text-sm shadow-none"
                         />
                       </div>
 
-                      <div className="space-y-3 rounded-2xl bg-slate-50 p-4 text-sm">
+                      <div className="space-y-3 rounded-2xl bg-slate-50 p-4 text-sm lg:space-y-2 lg:p-3">
                         <div className="flex justify-between gap-4 text-slate-600"><span>Transfer amount</span><span>{formatCurrency(amount)}</span></div>
                         <div className="flex justify-between gap-4 text-slate-600"><span>Transfer fee</span><span>{formatCurrency(fee)}</span></div>
-                        <div className="flex justify-between gap-4 border-t border-slate-200 pt-3 font-semibold text-[#0e2a5c]"><span>Total debit</span><span>{formatCurrency(totalDebit)}</span></div>
+                        <div className="flex justify-between gap-4 border-t border-slate-200 pt-3 font-semibold text-[#0e2a5c] lg:pt-2"><span>Total debit</span><span>{formatCurrency(totalDebit)}</span></div>
                       </div>
 
-                      <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-slate-200 p-4 text-sm text-slate-600 transition hover:border-slate-300">
+                      <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-slate-200 p-4 text-sm text-slate-600 transition hover:border-slate-300 lg:p-3">
                         <input type="checkbox" checked={confirmation} onChange={(event) => { setConfirmation(event.target.checked); setError(""); }} className="mt-0.5 h-4 w-4 accent-[#0e2a5c]" />
                         <span>I confirm the recipient and amount are correct.</span>
                       </label>
 
-                      {error && <p role="alert" className="rounded-2xl bg-red-50 p-4 text-sm text-red-700">{error}</p>}
-                      <Button type="submit" disabled={submitting} className="h-14 w-full rounded-full bg-black text-base hover:bg-slate-800">
-                        <Send className="h-4 w-4" />
-                        {submitting ? "Processing transfer..." : "Confirm transfer"}
-                      </Button>
+                      {error && <p role="alert" className="rounded-2xl bg-red-50 p-4 text-sm text-red-700 lg:rounded-xl lg:p-3">{error}</p>}
+                      <div className="space-y-2 lg:space-y-1">
+                        <Button type="submit" disabled={submitting} className="h-12 w-full rounded-full bg-black text-base hover:bg-slate-800 lg:h-11">
+                          <Send className="h-4 w-4" />
+                          {submitting ? "Processing transfer..." : "Confirm transfer"}
+                        </Button>
+                        <Button type="button" variant="ghost" onClick={() => router.push("/dashboard")} className="h-auto w-full rounded-full py-1.5 text-sm text-slate-800 hover:bg-slate-100 lg:py-1">Cancel</Button>
+                      </div>
                     </form>
                   )}
                 </div>
-              </section>
-            </div>
-          </div>
-        </main>
-      </div>
+          </section>
+        </div>
+      </main>
     </div>
   );
 }

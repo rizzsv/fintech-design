@@ -6,7 +6,23 @@
       "Bash(node -e \"\nconst sharp=require\\(''sharp''\\);const os=require\\(''os''\\),path=require\\(''path''\\);\nconst f=path.join\\(os.tmpdir\\(\\),''ref-mark.png''\\);\nsharp\\(''docs/design/email-sending-notif.png''\\).extract\\({left:16,top:6,width:16,height:18}\\).resize\\({width:16*22,kernel:''nearest''}\\).toFile\\(f\\).then\\(\\(\\)=>console.log\\(f\\)\\);\n\")",
       "Bash(npx -y node@20 ./node_modules/typescript/bin/tsc --noEmit)",
       "Bash(npm run lint)",
-      "Bash(npx vitest run test/unit)"
+      "Bash(npx vitest run test/unit)",
+      "Bash(ls src src/components src/features src/features/dashboard src/app/\\\\\\(authenticated\\\\\\))",
+      "Bash(cat vitest.config.*)",
+      "Bash(curl -s -o /dev/null -w \"3002:%{http_code}\\\\n\" http://localhost:3002/)",
+      "Bash(curl -s -o /dev/null -w \"3000:%{http_code}\\\\n\" http://localhost:3000/)",
+      "Bash(cat playwright.config.*)",
+      "Bash(ls .env*)",
+      "Bash(curl -s -X POST http://localhost:3000/api/v1/auth/login -H \"Content-Type: application/json\" -d \"{}\")",
+      "Bash(curl -s -X POST http://localhost:3000/api/v1/auth/register -H \"Content-Type: application/json\" -d \"{\"\"email\"\":\"\"topup.layout.qa@example.com\"\",\"\"phoneNumber\"\":\"\"081299880077\"\",\"\"password\"\":\"\"Password123!\"\",\"\"firstName\"\":\"\"Layout\"\",\"\"lastName\"\":\"\"Qa\"\"}\")",
+      "Bash(curl -s -X POST http://localhost:3000/api/v1/auth/login -H \"Content-Type: application/json\" -d \"{\"\"email\"\":\"\"topup.layout.qa@example.com\"\",\"\"password\"\":\"\"Password123!\"\"}\")",
+      "Bash(curl -s -X POST http://localhost:3000/api/v1/auth/login -H \"Content-Type: application/json\" -d \"{\"\"email\"\":\"\"rizqi@example.com\"\",\"\"password\"\":\"\"password123\"\"}\")",
+      "Bash(docker ps --format \"{{.Names}}\\\\t{{.Image}}\\\\t{{.Ports}}\")",
+      "Bash(docker exec fintech-postgres psql -U postgres -l)",
+      "Bash(docker exec fintech-postgres psql -U postgres -d fintech -c \"select email, \"\"isActive\"\", \"\"isEmailVerified\"\" from \"\"User\"\" limit 10;\")",
+      "Bash(docker exec fintech-postgres psql -U postgres -d fintech -c \"\\\\dt\")",
+      "Bash(grep -h \"DATABASE_URL\" .env*)",
+      "Bash(docker exec fintech-postgres psql -U postgres -d fintech -c \"select table_schema, table_name from information_schema.tables where table_schema not in \\(''pg_catalog'',''information_schema''\\) limit 30;\")"
     ]
   }
 }

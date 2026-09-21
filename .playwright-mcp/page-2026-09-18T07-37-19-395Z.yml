@@ -1,0 +1,227 @@
+- generic [ref=f17e1]:
+  - generic [ref=f17e2]:
+    - banner [ref=f17e3]:
+      - generic [ref=f17e4]:
+        - navigation "Primary navigation" [ref=f17e6]:
+          - button "Dashboard" [ref=f17e7]
+          - button "Mutasi" [ref=f17e12]
+          - button "Wallet" [ref=f17e16]
+          - button "Transfer" [ref=f17e20]
+        - generic [ref=f17e25]:
+          - button "Notifications" [ref=f17e26]
+          - button "Open profile information for Rizqi Santoso" [ref=f17e31]:
+            - generic [ref=f17e32]: R
+    - main [ref=f17e34]:
+      - generic [ref=f17e35]:
+        - paragraph [ref=f17e257]: Drag a card to rearrange it, or use its size buttons.
+        - button "Reset layout" [ref=f17e258]
+        - button "Done" [active] [pressed] [ref=f17e263]
+      - list [ref=f17e39]:
+        - listitem [ref=f17e40]:
+          - generic [ref=f17e41]:
+            - generic [ref=f17e42]:
+              - generic [ref=f17e43]:
+                - paragraph [ref=f17e44]: Total Balance
+                - generic [ref=f17e45]: Active
+              - generic [ref=f17e46]:
+                - paragraph [ref=f17e47]: Rp 18.450.000
+                - generic [ref=f17e48]: IDR
+              - generic [ref=f17e49]:
+                - button "Top Up" [ref=f17e50]
+                - button "Transfer" [ref=f17e51]
+            - generic [ref=f17e52]:
+              - generic [ref=f17e53]:
+                - paragraph [ref=f17e54]: This Month
+                - paragraph [ref=f17e55]: 1 Sep – 30 Sep
+              - generic [ref=f17e56]:
+                - generic [ref=f17e57]:
+                  - paragraph [ref=f17e58]: Top Up
+                  - paragraph [ref=f17e59]: Rp 7.200.000
+                - generic [ref=f17e60]:
+                  - paragraph [ref=f17e61]: Transfer
+                  - paragraph [ref=f17e62]: Rp 3.150.000
+                - generic [ref=f17e63]:
+                  - paragraph [ref=f17e64]: Withdrawal
+                  - paragraph [ref=f17e65]: Rp 900.000
+          - generic [ref=f17e267]:
+            - group "Reorder Total Balance" [ref=f17e268]:
+              - button "Move Total Balance up in column 1" [disabled] [ref=f17e269]
+              - button "Move Total Balance down in column 1" [ref=f17e272]
+              - button "Move Total Balance to column 1" [disabled] [ref=f17e275]
+              - button "Move Total Balance to column 2" [ref=f17e278]
+            - group "Size for Total Balance" [ref=f17e281]:
+              - button "Normal" [pressed] [ref=f17e282]
+              - button "Full width" [ref=f17e283]
+        - listitem [ref=f17e66]:
+          - generic [ref=f17e67]:
+            - heading "Transfer Limits" [level=3] [ref=f17e68]
+            - generic [ref=f17e69]:
+              - generic [ref=f17e70]:
+                - generic [ref=f17e71]:
+                  - paragraph [ref=f17e72]: Daily
+                  - paragraph [ref=f17e73]: 25%
+                - generic [ref=f17e76]:
+                  - generic [ref=f17e77]: Rp 2.500.000 used
+                  - generic [ref=f17e78]: Rp 10.000.000
+                - paragraph [ref=f17e79]: Rp 7.500.000 remaining
+              - generic [ref=f17e80]:
+                - generic [ref=f17e81]:
+                  - paragraph [ref=f17e82]: Monthly
+                  - paragraph [ref=f17e83]: 6.3%
+                - generic [ref=f17e86]:
+                  - generic [ref=f17e87]: Rp 3.150.000 used
+                  - generic [ref=f17e88]: Rp 50.000.000
+                - paragraph [ref=f17e89]: Rp 46.850.000 remaining
+          - generic [ref=f17e285]:
+            - group "Reorder Transfer Limits" [ref=f17e286]:
+              - button "Move Transfer Limits up in column 1" [ref=f17e287]
+              - button "Move Transfer Limits down in column 1" [ref=f17e290]
+              - button "Move Transfer Limits to column 1" [disabled] [ref=f17e293]
+              - button "Move Transfer Limits to column 2" [ref=f17e296]
+            - group "Size for Transfer Limits" [ref=f17e299]:
+              - button "Normal" [pressed] [ref=f17e300]
+              - button "Full width" [ref=f17e301]
+        - listitem [ref=f17e90]:
+          - generic [ref=f17e91]:
+            - generic [ref=f17e92]:
+              - paragraph [ref=f17e93]: Income
+              - paragraph [ref=f17e94]: Rp 7.200.000
+            - generic [ref=f17e98]:
+              - paragraph [ref=f17e99]: Expense
+              - paragraph [ref=f17e100]: Rp 4.050.000
+            - generic [ref=f17e104]:
+              - paragraph [ref=f17e105]: Net
+              - paragraph [ref=f17e106]: Rp 3.150.000
+          - generic [ref=f17e303]:
+            - group "Reorder Income / Expense / Net" [ref=f17e304]:
+              - button "Move Income / Expense / Net up in column 1" [ref=f17e305]
+              - button "Move Income / Expense / Net down in column 1" [ref=f17e308]
+              - button "Move Income / Expense / Net to column 1" [disabled] [ref=f17e311]
+              - button "Move Income / Expense / Net to column 2" [ref=f17e314]
+            - group "Size for Income / Expense / Net" [ref=f17e317]:
+              - button "Normal" [pressed] [ref=f17e318]
+              - button "Full width" [ref=f17e319]
+        - listitem [ref=f17e110]:
+          - generic [ref=f17e111]:
+            - heading "Account Overview" [level=3] [ref=f17e112]
+            - generic [ref=f17e113]:
+              - generic [ref=f17e114]:
+                - paragraph [ref=f17e115]: Account
+                - paragraph [ref=f17e120]: active
+              - generic [ref=f17e121]:
+                - paragraph [ref=f17e122]: Email
+                - paragraph [ref=f17e127]: verified
+              - generic [ref=f17e128]:
+                - paragraph [ref=f17e129]: KYC Status
+                - paragraph [ref=f17e133]: verified
+              - generic [ref=f17e134]:
+                - paragraph [ref=f17e135]: KYC Tier
+                - paragraph [ref=f17e139]: tier_2
+          - generic [ref=f17e321]:
+            - group "Reorder Account Overview" [ref=f17e322]:
+              - button "Move Account Overview up in column 1" [ref=f17e323]
+              - button "Move Account Overview down in column 1" [disabled] [ref=f17e326]
+              - button "Move Account Overview to column 1" [disabled] [ref=f17e329]
+              - button "Move Account Overview to column 2" [ref=f17e332]
+            - group "Size for Account Overview" [ref=f17e335]:
+              - button "Normal" [pressed] [ref=f17e336]
+              - button "Full width" [ref=f17e337]
+        - listitem [ref=f17e140]:
+          - generic [ref=f17e141]:
+            - generic [ref=f17e142]:
+              - heading "Recent Transactions" [level=3] [ref=f17e143]
+              - link "View All" [ref=f17e144] [cursor=pointer]:
+                - /url: /analysis
+            - list [ref=f17e145]:
+              - listitem [ref=f17e146]:
+                - generic [ref=f17e151]:
+                  - paragraph [ref=f17e152]: TOPUP
+                  - paragraph [ref=f17e153]: Top up via bank transfer · 18 Sep 2026, 10.11
+                - generic [ref=f17e154]:
+                  - paragraph [ref=f17e155]: +Rp 1.500.000
+                  - paragraph [ref=f17e156]: success
+              - listitem [ref=f17e157]:
+                - generic [ref=f17e162]:
+                  - paragraph [ref=f17e163]: TRANSFER
+                  - paragraph [ref=f17e164]: Transfer to Nadia · 17 Sep 2026, 19.42
+                - generic [ref=f17e165]:
+                  - paragraph [ref=f17e166]: "-Rp 400.000"
+                  - paragraph [ref=f17e167]: success
+              - listitem [ref=f17e168]:
+                - generic [ref=f17e173]:
+                  - paragraph [ref=f17e174]: WITHDRAWAL
+                  - paragraph [ref=f17e175]: Withdrawal to BCA · 16 Sep 2026, 16.05
+                - generic [ref=f17e176]:
+                  - paragraph [ref=f17e177]: "-Rp 900.000"
+                  - paragraph [ref=f17e178]: success
+              - listitem [ref=f17e179]:
+                - generic [ref=f17e184]:
+                  - paragraph [ref=f17e185]: TOPUP
+                  - paragraph [ref=f17e186]: Top up via e-wallet · 16 Sep 2026, 01.20
+                - generic [ref=f17e187]:
+                  - paragraph [ref=f17e188]: +Rp 1.300.000
+                  - paragraph [ref=f17e189]: success
+              - listitem [ref=f17e190]:
+                - generic [ref=f17e195]:
+                  - paragraph [ref=f17e196]: TRANSFER
+                  - paragraph [ref=f17e197]: Transfer to Budi · 14 Sep 2026, 14.33
+                - generic [ref=f17e198]:
+                  - paragraph [ref=f17e199]: "-Rp 650.000"
+                  - paragraph [ref=f17e200]: success
+          - generic [ref=f17e339]:
+            - group "Reorder Recent Transactions" [ref=f17e340]:
+              - button "Move Recent Transactions up in column 2" [disabled] [ref=f17e341]
+              - button "Move Recent Transactions down in column 2" [ref=f17e344]
+              - button "Move Recent Transactions to column 1" [ref=f17e347]
+              - button "Move Recent Transactions to column 1" [disabled] [ref=f17e350]
+            - group "Size for Recent Transactions" [ref=f17e353]:
+              - button "Normal" [pressed] [ref=f17e354]
+              - button "Full width" [ref=f17e355]
+        - listitem [ref=f17e201]:
+          - generic [ref=f17e202]:
+            - generic [ref=f17e203]:
+              - heading "Cash Flow" [level=3] [ref=f17e204]
+              - paragraph [ref=f17e205]: LAST_30_DAYS
+            - generic [ref=f17e207]:
+              - img [ref=f17e209]:
+                - generic [ref=f17e210]: Rp 1.7jt
+                - generic [ref=f17e211]: Rp 1.3jt
+                - generic [ref=f17e212]: Rp 863rb
+                - generic [ref=f17e213]: Rp 431rb
+                - generic [ref=f17e214]: Rp 0
+                - generic [ref=f17e215]: 12 Sep
+                - generic [ref=f17e216]: 13 Sep
+                - generic [ref=f17e217]: 14 Sep
+                - generic [ref=f17e218]: 15 Sep
+                - generic [ref=f17e219]: 16 Sep
+                - generic [ref=f17e220]: 17 Sep
+                - generic [ref=f17e221]: 18 Sep
+                - generic [ref=f17e225] [cursor=pointer]
+                - generic [ref=f17e226] [cursor=pointer]
+                - generic [ref=f17e227] [cursor=pointer]
+                - generic [ref=f17e228] [cursor=pointer]
+                - generic [ref=f17e229] [cursor=pointer]
+                - generic [ref=f17e230] [cursor=pointer]
+                - generic [ref=f17e231] [cursor=pointer]
+                - generic [ref=f17e232] [cursor=pointer]
+                - generic [ref=f17e233] [cursor=pointer]
+                - generic [ref=f17e234] [cursor=pointer]
+                - generic [ref=f17e235] [cursor=pointer]
+                - generic [ref=f17e236] [cursor=pointer]
+                - generic [ref=f17e237] [cursor=pointer]
+                - generic [ref=f17e238] [cursor=pointer]
+              - generic [ref=f17e239]:
+                - generic [ref=f17e240]: Income
+                - generic [ref=f17e243]: Expense
+          - generic [ref=f17e357]:
+            - group "Reorder Cash Flow" [ref=f17e358]:
+              - button "Move Cash Flow up in column 2" [ref=f17e359]
+              - button "Move Cash Flow down in column 2" [disabled] [ref=f17e362]
+              - button "Move Cash Flow to column 1" [ref=f17e365]
+              - button "Move Cash Flow to column 1" [disabled] [ref=f17e368]
+            - group "Size for Cash Flow" [ref=f17e371]:
+              - button "Normal" [pressed] [ref=f17e372]
+              - button "Full width" [ref=f17e373]
+      - paragraph [ref=f17e246]
+  - button "Open Next.js Dev Tools" [ref=f17e252] [cursor=pointer]
+  - alert [ref=f17e256]

@@ -24,17 +24,18 @@ describe('dashboard widget layout', () => {
     localStorage.clear();
   });
 
-  it('defaults to the registry order and sizes', () => {
+  it('defaults to the registry order, sizes and columns', () => {
     expect(defaultLayout()).toEqual(
       WIDGET_REGISTRY.map((definition) => ({
         id: definition.id,
         size: definition.defaultSize,
+        column: definition.defaultColumn,
       })),
     );
   });
 
-  it('keeps a stored order and size round-trip intact', () => {
-    const stored = moveWidget(defaultLayout(), 0, 3);
+  it('keeps a stored order, size and column round-trip intact', () => {
+    const stored = moveWidget(defaultLayout(), 0, 3, 1);
     saveLayout(USER_ID, stored);
 
     expect(loadLayout(USER_ID)).toEqual(stored);
@@ -42,7 +43,7 @@ describe('dashboard widget layout', () => {
 
   it('drops unknown widget ids', () => {
     const layout = mergeWithDefaults([
-      { id: 'crypto-portfolio', size: 'sm', order: 0 },
+      { id: 'crypto-portfolio', size: 'sm', column: 0, order: 0 },
       ...defaultLayout().map((entry, order) => ({ ...entry, order: order + 1 })),
     ]);
 
@@ -59,8 +60,8 @@ describe('dashboard widget layout', () => {
 
   it('keeps the stored order of the widgets it recognises', () => {
     const layout = mergeWithDefaults([
-      { id: 'cash-flow-chart', size: 'tall', order: 0 },
-      { id: 'financial-overview', size: 'sm', order: 1 },
+      { id: 'cash-flow-chart', size: 'sm', column: 1, order: 0 },
+      { id: 'financial-overview', size: 'sm', column: 0, order: 1 },
     ]);
 
     const positions = layout.map((entry) => entry.id);
@@ -73,26 +74,52 @@ describe('dashboard widget layout', () => {
   });
 
   it('coerces a size the widget does not allow back to its default', () => {
-    const [entry] = mergeWithDefaults([{ id: 'financial-overview', size: 'lg', order: 0 }]);
+    const [entry] = mergeWithDefaults([
+      { id: 'financial-overview', size: 'tall', column: 0, order: 0 },
+    ]);
 
-    expect(entry).toEqual({ id: 'financial-overview', size: 'sm' });
+    expect(entry).toEqual({ id: 'financial-overview', size: 'sm', column: 0 });
+  });
+
+  it('coerces a column outside the board back to the widget default', () => {
+    const layout = mergeWithDefaults([
+      { id: 'recent-transactions', size: 'sm', column: 7, order: 0 },
+    ]);
+
+    expect(layout.find((entry) => entry.id === 'recent-transactions')).toEqual({
+      id: 'recent-transactions',
+      size: 'sm',
+      column: 1,
+    });
+  });
+
+  it('keeps a stored column the board does support', () => {
+    const layout = mergeWithDefaults([
+      { id: 'account-overview', size: 'sm', column: 1, order: 0 },
+    ]);
+
+    expect(layout.find((entry) => entry.id === 'account-overview')).toEqual({
+      id: 'account-overview',
+      size: 'sm',
+      column: 1,
+    });
   });
 
   it('ignores duplicate entries for the same widget', () => {
     const layout = mergeWithDefaults([
-      { id: 'transfer-limits', size: 'wide', order: 0 },
-      { id: 'transfer-limits', size: 'sm', order: 1 },
+      { id: 'transfer-limits', size: 'wide', column: 0, order: 0 },
+      { id: 'transfer-limits', size: 'sm', column: 1, order: 1 },
     ]);
 
     expect(layout.filter((entry) => entry.id === 'transfer-limits')).toEqual([
-      { id: 'transfer-limits', size: 'wide' },
+      { id: 'transfer-limits', size: 'wide', column: 0 },
     ]);
   });
 
   it('discards a layout stored under a different version', () => {
     write({
       version: LAYOUT_VERSION + 1,
-      widgets: [{ id: 'cash-flow-chart', size: 'wide', order: 0 }],
+      widgets: [{ id: 'cash-flow-chart', size: 'wide', column: 1, order: 0 }],
     });
 
     expect(loadLayout(USER_ID)).toEqual(defaultLayout());
@@ -139,11 +166,32 @@ describe('dashboard widget layout', () => {
     ]);
   });
 
+  it('moves a widget to another column without reordering it', () => {
+    const layout = defaultLayout();
+    const moved = moveWidget(layout, 0, 0, 1);
+
+    expect(moved.map((entry) => entry.id)).toEqual(layout.map((entry) => entry.id));
+    expect(moved[0]).toEqual({ id: 'financial-overview', size: 'sm', column: 1 });
+    expect(layout[0].column).toBe(0);
+  });
+
+  it('carries the new column along when a move also repositions the widget', () => {
+    const moved = moveWidget(defaultLayout(), 0, 2, 1);
+
+    expect(moved[2]).toEqual({ id: 'financial-overview', size: 'sm', column: 1 });
+  });
+
   it('ignores out-of-range moves', () => {
     const layout = defaultLayout();
 
     expect(moveWidget(layout, 0, 0)).toBe(layout);
     expect(moveWidget(layout, 0, layout.length)).toBe(layout);
     expect(moveWidget(layout, -1, 1)).toBe(layout);
+  });
+
+  it('ignores a move to the column the widget already sits in', () => {
+    const layout = defaultLayout();
+
+    expect(moveWidget(layout, 0, 0, 0)).toBe(layout);
   });
 });

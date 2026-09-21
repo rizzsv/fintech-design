@@ -8,6 +8,7 @@ import { dashboardApi } from '@/features/dashboard/api';
 import type { DashboardResponse } from '@/features/dashboard/types';
 import { useWidgetLayout } from '@/features/dashboard/use-widget-layout';
 import {
+  COLUMN_COUNT,
   SIZE_LABEL,
   SPAN_CLASS,
   widgetDefinition,
@@ -26,6 +27,7 @@ import { AccountOverviewCard } from '@/components/dashboard/account-overview-car
 interface DashboardWidgetsProps {
   dashboard: DashboardResponse;
   columnsClass: string;
+  stackClass: string;
   itemVariants: Variants;
   layoutReady: boolean;
 }
@@ -41,6 +43,7 @@ interface DashboardWidgetsProps {
 function DashboardWidgets({
   dashboard,
   columnsClass,
+  stackClass,
   itemVariants,
   layoutReady,
 }: DashboardWidgetsProps) {
@@ -75,6 +78,10 @@ function DashboardWidgets({
         value: size,
         label: SIZE_LABEL[size],
       })),
+      column: entry.column,
+      // `wide` is the one size that leaves its column: the card takes a row of its
+      // own across the whole board.
+      fullWidth: entry.size === 'wide',
       spanClassName: SPAN_CLASS[entry.size],
       content: widgetContent[entry.id],
     };
@@ -88,14 +95,17 @@ function DashboardWidgets({
         onReset={reset}
       />
 
-      {/* One logical grid: the widget order is also the mobile stacking order, and
-          the default order reproduces the two-column arrangement the dashboard
-          shipped with. */}
+      {/* Two independent stacks, not rows of one shared grid: a tall card in one
+          column would otherwise inflate the row tracks of the other and leave dead
+          space around its neighbours. On mobile the grid collapses to a single
+          column, so the stacks simply follow each other. */}
       <DraggableWidgetGrid
         items={widgetItems}
         editing={editing}
         layoutReady={layoutReady}
+        columnCount={COLUMN_COUNT}
         columnsClassName={columnsClass}
+        stackClassName={stackClass}
         itemVariants={itemVariants}
         onReorder={reorder}
         onResize={resize}
@@ -158,18 +168,21 @@ export default function DashboardPage() {
   };
 
   // Shared between the skeleton and the loaded layout so the two cannot drift.
-  // `items-start` keeps every card at its intrinsic height - a widget's size is a
-  // grid footprint, never a height override. Span utilities are `md:`-only so the
-  // one-column mobile grid cannot spill into an implicit second column.
+  // The grid only provides the column tracks; each column is a stack that packs at
+  // exactly the gap, whatever its cards' heights. Span utilities are `md:`-only so
+  // the one-column mobile grid cannot spill into an implicit second column.
   const columnsClass =
-    'grid grid-cols-1 items-start gap-5 md:grid-flow-row-dense md:grid-cols-2 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]';
+    'grid grid-cols-1 items-start gap-5 md:grid-cols-2 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]';
+  // The stack gap has to match the grid gap, otherwise the two columns' cards stop
+  // lining up with each other.
+  const stackClass = 'flex min-w-0 flex-col gap-5';
 
   if (loading) {
     return (
       <div className="flex flex-1 flex-col bg-[#F5F5F5]">
         <main className="mx-auto w-full max-w-[1600px] px-4 py-4 sm:px-6 sm:py-5">
           <div className={columnsClass}>
-            <div className="min-w-0 space-y-5">
+            <div className={stackClass}>
               <div className="h-64 animate-pulse rounded-2xl bg-white" />
               <div className="h-40 animate-pulse rounded-2xl bg-white" />
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -179,7 +192,7 @@ export default function DashboardPage() {
               </div>
               <div className="h-40 animate-pulse rounded-2xl bg-white" />
             </div>
-            <div className="min-w-0 space-y-5">
+            <div className={stackClass}>
               <div className="h-72 animate-pulse rounded-2xl bg-white" />
               <div className="h-80 animate-pulse rounded-2xl bg-white" />
             </div>
@@ -228,6 +241,7 @@ export default function DashboardPage() {
         <DashboardWidgets
           dashboard={dashboard}
           columnsClass={columnsClass}
+          stackClass={stackClass}
           itemVariants={itemVariants}
           layoutReady={entranceDone}
         />

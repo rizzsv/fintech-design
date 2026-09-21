@@ -9,6 +9,7 @@ import {
   moveWidget,
   saveLayout,
   widgetDefinition,
+  type WidgetColumn,
   type WidgetId,
   type WidgetLayout,
   type WidgetSize,
@@ -16,7 +17,7 @@ import {
 
 export interface UseWidgetLayoutResult {
   layout: WidgetLayout;
-  reorder: (from: number, to: number) => void;
+  reorder: (from: number, to: number, column?: number) => void;
   resize: (id: WidgetId, size: WidgetSize) => void;
   reset: () => void;
 }
@@ -52,8 +53,14 @@ export function useWidgetLayout(userId: string): UseWidgetLayoutResult {
   );
 
   const reorder = useCallback(
-    (from: number, to: number) => {
-      apply(moveWidget(layoutRef.current, from, to));
+    (from: number, to: number, column?: number) => {
+      // The grid is generic over column counts, so the column arrives as a plain
+      // number; anything outside this dashboard's two stacks is ignored rather
+      // than persisted.
+      const nextColumn: WidgetColumn | undefined =
+        column === 0 || column === 1 ? column : undefined;
+
+      apply(moveWidget(layoutRef.current, from, to, nextColumn));
     },
     [apply],
   );
