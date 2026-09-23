@@ -36,13 +36,21 @@ export function AuthShell() {
       : { firstName: "", lastName: "", email: "", phoneNumber: "", password: "" },
   });
 
+  /**
+   * Toggling the mode swaps the resolver, so the values have to be swapped with
+   * it. `reset` and `getValues` are stable for the life of the form, so they do
+   * not re-trigger this; the email is carried over because the user typed it for
+   * whichever form they started on.
+   */
+  const { reset, getValues } = form;
+
   useEffect(() => {
-    form.reset(
+    reset(
       isLogin
-        ? { email: form.getValues("email") || "", password: "" }
-        : { firstName: "", lastName: "", email: form.getValues("email") || "", phoneNumber: "", password: "" },
+        ? { email: getValues("email") || "", password: "" }
+        : { firstName: "", lastName: "", email: getValues("email") || "", phoneNumber: "", password: "" },
     );
-  }, [isLogin]);
+  }, [isLogin, reset, getValues]);
 
   const mutation = useMutation({
     mutationFn: async (payload: Record<string, unknown>) => {
@@ -329,7 +337,7 @@ export function AuthShell() {
                   </>
                 ) : (
                   <>
-                    Sign in
+                    {isLogin ? "Sign in" : "Create account"}
                     <ArrowRight className="h-4 w-4" />
                   </>
                 )}

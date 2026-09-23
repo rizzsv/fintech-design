@@ -124,6 +124,17 @@ export interface TopUpPaymentResponse {
   expiredAt: string;
 }
 
+/**
+ * Mirrors `GET /transaction/config`. Unlike a withdrawal, the transfer `fee` is
+ * charged on top of the amount, so the sender is debited `amount + fee`.
+ */
+export interface TransferConfig {
+  fee: number;
+  maxAmount: number;
+  dailyLimit: number;
+  maxPerMinute: number;
+}
+
 export interface TransferResponse {
   id: string;
   referenceNumber: string;
@@ -133,20 +144,48 @@ export interface TransferResponse {
   createdAt: string;
 }
 
+export type WithdrawalMethod = "BANK_TRANSFER" | "EWALLET";
 
-
-export interface DashboardTransaction {
-  id?: string;
-  type?: string;
-  amount?: number;
-  status?: string;
-  createdAt?: string;
-  description?: string;
-  counterparty?: string;
+/** Mirrors `GET /withdrawal/config` - the backend owns these numbers. */
+export interface WithdrawalConfig {
+  fee: number;
+  minAmount: number;
+  maxAmount: number;
+  dailyLimit: number;
+  methods: WithdrawalMethod[];
 }
 
+export interface CreateWithdrawalRequest {
+  amount: number;
+  method: WithdrawalMethod;
+  bankCode?: string;
+  accountNumber?: string;
+  accountName?: string;
+}
+
+/** Mirrors `POST /withdrawal`. `netAmount` is what actually reaches the bank. */
+export interface WithdrawalResponse {
+  withdrawalId: string;
+  referenceNumber: string;
+  status: string;
+  amount: number;
+  fee: number;
+  netAmount: number;
+}
+
+
+
 export type TransactionType = "TOPUP" | "TRANSFER" | "WITHDRAWAL" | "REFUND";
-export type TransactionStatus = "SUCCESS";
+
+/** Mirrors the `status` values accepted by `GET /transaction`. */
+export type TransactionStatus =
+  | "CREATED"
+  | "PENDING"
+  | "PROCESSING"
+  | "SUCCESS"
+  | "FAILED"
+  | "CANCELLED"
+  | "REVERSED";
 
 export interface TransactionQuery {
   page?: number;
@@ -163,7 +202,7 @@ export interface TransactionItem {
   toEmail?: string | null;
   amount: string | number;
   transactionType: TransactionType;
-  status: string;
+  status: TransactionStatus;
   createdAt: string;
 }
 
@@ -177,15 +216,22 @@ export interface TransactionsResponse {
   };
 }
 
+export interface TransactionCounterparty {
+  id: string;
+  user: {
+    email: string;
+    firstName: string | null;
+    lastName: string | null;
+  };
+}
+
 export interface TransactionDetail extends TransactionItem {
   referenceNumber?: string | null;
   fee?: string | number;
   description?: string | null;
   completedAt?: string | null;
-  fromWallet?: { id?: string; user?: { email?: string } } | null;
-  toWallet?: { id?: string; user?: { email?: string } } | null;
-  ledger?: Array<{ entryType?: string; amount?: string | number; balanceAfter?: string | number }>;
-  logs?: Array<{ event?: string; createdAt?: string; statusAfter?: string }>;
+  fromWallet?: TransactionCounterparty | null;
+  toWallet?: TransactionCounterparty | null;
 }
 
 export interface DashboardResponse {
@@ -214,3 +260,29 @@ export interface MeResponse {
     tier: string;
   };
 }
+
+/** Mirrors the Prisma `kyc_status` enum. */
+export type KycStatus = "PENDING" | "APPROVED" | "VERIFIED" | "REJECTED";
+
+/**
+ * Mirrors `POST /kyc/documents`. The response also carries the stored file
+ * paths, which the client has no route to read, so they are not declared.
+ */
+export interface KycDocumentResponse {
+  id: string;
+  userId: string;
+  status: KycStatus;
+  reviewNote: string | null;
+  reviewedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Mirrors `GET`/`PATCH /notifications/preferences`. */
+export interface NotificationPreferences {
+  inApp: boolean;
+  email: boolean;
+  push: boolean;
+}
+
+export type NotificationChannel = keyof NotificationPreferences;

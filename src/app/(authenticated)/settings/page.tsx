@@ -1,13 +1,18 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AlertCircle, Bell, Building2, CheckCircle2, ChevronRight, CircleUserRound, Landmark, LockKeyhole, ShieldCheck, Upload } from "lucide-react";
 
 import { dashboardApi } from "@/features/dashboard/api";
-import type { MeResponse, WalletResponse } from "@/features/dashboard/types";
+import type {
+  KycStatus,
+  MeResponse,
+  NotificationChannel,
+  NotificationPreferences,
+  WalletResponse,
+} from "@/features/dashboard/types";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 
 const settingsSections = [
   { id: "profile", label: "Profile", icon: CircleUserRound },
@@ -63,80 +68,21 @@ function ContentCard({ title, description, children }: { title: string; descript
   );
 }
 
+/**
+ * There is no password-change or 2FA endpoint on the server. A form is not
+ * offered here because submitting one could never succeed, and asking for a
+ * current password that is never sent anywhere is worse than saying so.
+ */
 function SecuritySection() {
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-
-  const handlePasswordChange = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setError("");
-    setSuccess("");
-
-    if (!currentPassword.trim() || !newPassword.trim() || !confirmPassword.trim()) {
-      setError("All password fields are required.");
-      return;
-    }
-
-    if (newPassword !== confirmPassword) {
-      setError("New password and confirmation do not match.");
-      return;
-    }
-
-    if (newPassword.length < 8) {
-      setError("New password must be at least 8 characters.");
-      return;
-    }
-
-    setSubmitting(true);
-    setError("Password change API not yet implemented. Backend integration required.");
-    setSubmitting(false);
-  };
-
   return (
     <div className="space-y-5">
       <div>
         <h2 className="text-xl font-semibold text-slate-800">Security</h2>
-        <p className="mt-1 text-sm text-slate-600">Manage your password and account security settings.</p>
+        <p className="mt-1 text-sm text-slate-600">Password and two-factor settings are not available yet.</p>
       </div>
 
-      <ContentCard title="Change password" description="Update your account password. All password fields are required.">
-        <form onSubmit={handlePasswordChange} className="space-y-4">
-          <div>
-            <label htmlFor="current-password" className="mb-1.5 block text-sm font-medium text-slate-700">Current password</label>
-            <Input id="current-password" type="password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} placeholder="Enter current password" className="h-11" />
-          </div>
-          <div>
-            <label htmlFor="new-password" className="mb-1.5 block text-sm font-medium text-slate-700">New password</label>
-            <Input id="new-password" type="password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} placeholder="Enter new password" className="h-11" />
-            <p className="mt-1 text-xs text-slate-500">Must be at least 8 characters.</p>
-          </div>
-          <div>
-            <label htmlFor="confirm-password" className="mb-1.5 block text-sm font-medium text-slate-700">Confirm new password</label>
-            <Input id="confirm-password" type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} placeholder="Confirm new password" className="h-11" />
-          </div>
-
-          {error && (
-            <div className="flex items-start gap-2 rounded-xl bg-red-50 p-3 text-sm text-red-700">
-              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-              <span>{error}</span>
-            </div>
-          )}
-
-          {success && (
-            <div className="flex items-start gap-2 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-700">
-              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
-              <span>{success}</span>
-            </div>
-          )}
-
-          <Button type="submit" disabled={submitting} className="h-10 rounded-xl bg-slate-900 hover:bg-slate-800">
-            {submitting ? "Updating..." : "Update password"}
-          </Button>
-        </form>
+      <ContentCard title="Change password" description="This account does not support changing your password from the app yet.">
+        <p className="text-sm text-slate-600">Password changes are not exposed by the API in this version, so they cannot be made here.</p>
       </ContentCard>
 
       <ContentCard title="Two-factor authentication" description="Additional security features are not available in this phase.">
@@ -146,7 +92,22 @@ function SecuritySection() {
   );
 }
 
-function KycSection({ profile }: { profile: MeResponse | null }) {
+/**
+ * Mirrors `KYC_UPLOAD_CONFIG` on the server. A wider `image/*` filter would let
+ * the browser offer formats the upload validator rejects.
+ */
+const DOCUMENT_ACCEPT = ".jpg,.jpeg,.png,.pdf";
+const SELFIE_ACCEPT = ".jpg,.jpeg,.png";
+
+/**
+ * The server refuses a new upload while a request is pending or already
+ * verified, so the form is only offered when a submission can succeed.
+ */
+function canSubmitKyc(status: string) {
+  return status !== "PENDING" && status !== "VERIFIED";
+}
+
+function KycSection({ profile, onStatusChange }: { profile: MeResponse | null; onStatusChange: (status: KycStatus) => void }) {
   const [documentFile, setDocumentFile] = useState<File | null>(null);
   const [selfieFile, setSelfieFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -164,18 +125,29 @@ function KycSection({ profile }: { profile: MeResponse | null }) {
     }
 
     setSubmitting(true);
-    setError("KYC upload API not yet implemented. Backend integration required.");
-    setSubmitting(false);
+
+    try {
+      const result = await dashboardApi.uploadKycDocuments(documentFile, selfieFile);
+
+      setDocumentFile(null);
+      setSelfieFile(null);
+      setSuccess("Documents submitted. Your verification is now under review.");
+      onStatusChange(result.status);
+    } catch (submitError: unknown) {
+      setError(submitError instanceof Error ? submitError.message : "Failed to upload KYC documents");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const kycStatus = profile?.kyc.status ?? "PENDING";
-  const kycTier = profile?.kyc.tier ?? "TIER_0";
+  const kycStatus = profile?.kyc.status ?? "Unknown";
+  const kycTier = profile?.kyc.tier ?? "Unknown";
 
   return (
     <div className="space-y-5">
       <div>
         <h2 className="text-xl font-semibold text-slate-800">KYC / Verification</h2>
-        <p className="mt-1 text-sm text-slate-600">Upload verification documents to increase your account limits.</p>
+        <p className="mt-1 text-sm text-slate-600">Submit your identity document and a selfie to have your account verified.</p>
       </div>
 
       <ContentCard title="Current verification status" description="Your current KYC status and tier level.">
@@ -185,8 +157,14 @@ function KycSection({ profile }: { profile: MeResponse | null }) {
         </dl>
       </ContentCard>
 
-      {kycStatus !== "APPROVED" && (
-        <ContentCard title="Upload verification documents" description="Submit your identity document and selfie for verification.">
+      {kycStatus === "PENDING" && (
+        <ContentCard title="Verification in review" description="Your submitted documents are being reviewed.">
+          <p className="text-sm text-slate-600">You cannot submit new documents while a review is in progress.</p>
+        </ContentCard>
+      )}
+
+      {canSubmitKyc(kycStatus) && (
+        <ContentCard title="Upload verification documents" description="JPG, PNG or PDF for your document and JPG or PNG for your selfie. Maximum 5 MB each.">
           <form onSubmit={handleKycSubmit} className="space-y-4">
             <div>
               <label htmlFor="kyc-document" className="mb-1.5 block text-sm font-medium text-slate-700">Identity document (KTP/Passport)</label>
@@ -195,9 +173,9 @@ function KycSection({ profile }: { profile: MeResponse | null }) {
                   <Upload className="h-4 w-4" />
                   Choose file
                 </label>
-                <span className="text-sm text-slate-600">{documentFile ? documentFile.name : "No file selected"}</span>
+                <span className="min-w-0 truncate text-sm text-slate-600">{documentFile ? documentFile.name : "No file selected"}</span>
               </div>
-              <input id="kyc-document" type="file" accept="image/*,.pdf" onChange={(event) => setDocumentFile(event.target.files?.[0] ?? null)} className="sr-only" />
+              <input id="kyc-document" type="file" accept={DOCUMENT_ACCEPT} onChange={(event) => setDocumentFile(event.target.files?.[0] ?? null)} className="sr-only" />
             </div>
 
             <div>
@@ -207,20 +185,20 @@ function KycSection({ profile }: { profile: MeResponse | null }) {
                   <Upload className="h-4 w-4" />
                   Choose file
                 </label>
-                <span className="text-sm text-slate-600">{selfieFile ? selfieFile.name : "No file selected"}</span>
+                <span className="min-w-0 truncate text-sm text-slate-600">{selfieFile ? selfieFile.name : "No file selected"}</span>
               </div>
-              <input id="kyc-selfie" type="file" accept="image/*" onChange={(event) => setSelfieFile(event.target.files?.[0] ?? null)} className="sr-only" />
+              <input id="kyc-selfie" type="file" accept={SELFIE_ACCEPT} onChange={(event) => setSelfieFile(event.target.files?.[0] ?? null)} className="sr-only" />
             </div>
 
             {error && (
-              <div className="flex items-start gap-2 rounded-xl bg-red-50 p-3 text-sm text-red-700">
+              <div role="alert" className="flex items-start gap-2 rounded-xl bg-red-50 p-3 text-sm text-red-700">
                 <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
                 <span>{error}</span>
               </div>
             )}
 
             {success && (
-              <div className="flex items-start gap-2 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-700">
+              <div role="status" className="flex items-start gap-2 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-700">
                 <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
                 <span>{success}</span>
               </div>
@@ -232,29 +210,120 @@ function KycSection({ profile }: { profile: MeResponse | null }) {
           </form>
         </ContentCard>
       )}
-
-      <ContentCard title="Verification benefits" description="Higher tiers unlock increased transaction limits.">
-        <ul className="space-y-2 text-sm text-slate-600">
-          <li className="flex gap-2"><span className="font-semibold text-slate-800">Tier 0:</span> Limited features</li>
-          <li className="flex gap-2"><span className="font-semibold text-slate-800">Tier 1:</span> Standard limits</li>
-          <li className="flex gap-2"><span className="font-semibold text-slate-800">Tier 2:</span> Increased limits</li>
-          <li className="flex gap-2"><span className="font-semibold text-slate-800">Tier 3:</span> Maximum limits</li>
-        </ul>
-      </ContentCard>
     </div>
   );
 }
 
+const notificationChannels: Array<{ id: NotificationChannel; label: string; description: string }> = [
+  { id: "inApp", label: "In-app", description: "Show notifications inside the app." },
+  { id: "email", label: "Email", description: "Send notifications to your registered email address." },
+  { id: "push", label: "Push", description: "Send push notifications to your devices." },
+];
+
 function NotificationsSection() {
+  const [preferences, setPreferences] = useState<NotificationPreferences | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [savingChannel, setSavingChannel] = useState<NotificationChannel | null>(null);
+  const [saveError, setSaveError] = useState("");
+
+  useEffect(() => {
+    dashboardApi
+      .getNotificationPreferences()
+      .then(setPreferences)
+      .catch((requestError: unknown) =>
+        setLoadError(requestError instanceof Error ? requestError.message : "Unable to load notification preferences"),
+      )
+      .finally(() => setLoading(false));
+  }, []);
+
+  const toggleChannel = async (channel: NotificationChannel) => {
+    if (!preferences) return;
+
+    setSaveError("");
+    setSavingChannel(channel);
+
+    try {
+      /**
+       * The server returns the stored row, so the response replaces local state
+       * rather than the optimistic value being kept.
+       */
+      const updated = await dashboardApi.updateNotificationPreferences({
+        [channel]: !preferences[channel],
+      });
+
+      setPreferences(updated);
+    } catch (requestError: unknown) {
+      setSaveError(requestError instanceof Error ? requestError.message : "Failed to update notification preferences");
+    } finally {
+      setSavingChannel(null);
+    }
+  };
+
   return (
     <div className="space-y-5">
       <div>
         <h2 className="text-xl font-semibold text-slate-800">Notifications</h2>
-        <p className="mt-1 text-sm text-slate-600">Notification preferences are not yet available.</p>
+        <p className="mt-1 text-sm text-slate-600">Choose how you want to be notified about account activity.</p>
       </div>
 
-      <ContentCard title="Notification backend unavailable" description="Notification functionality requires backend API integration.">
-        <p className="text-sm text-slate-600">The notification system is not yet implemented. This section will allow you to configure email and push notification preferences once the backend API is available.</p>
+      <ContentCard title="Delivery channels" description="Changes are saved as soon as you switch a channel.">
+        {loading ? (
+          <div className="space-y-3" aria-hidden>
+            {notificationChannels.map((channel) => (
+              <div key={channel.id} className="flex items-center justify-between gap-4 border-b border-slate-100 py-3 last:border-b-0">
+                <div className="min-w-0 flex-1 space-y-2">
+                  <div className="h-4 w-24 animate-pulse rounded bg-slate-100" />
+                  <div className="h-3 w-56 animate-pulse rounded bg-slate-100" />
+                </div>
+                <div className="h-6 w-11 shrink-0 animate-pulse rounded-full bg-slate-100" />
+              </div>
+            ))}
+          </div>
+        ) : loadError || !preferences ? (
+          <div className="space-y-3">
+            <div role="alert" className="flex items-start gap-2 rounded-xl bg-red-50 p-3 text-sm text-red-700">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>{loadError || "Notification preferences are unavailable."}</span>
+            </div>
+            <Button type="button" onClick={() => window.location.reload()} className="h-10 rounded-xl bg-slate-900 hover:bg-slate-800">
+              Try again
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-1">
+            {notificationChannels.map(({ id, label, description }) => {
+              const enabled = preferences[id];
+
+              return (
+                <div key={id} className="flex items-center justify-between gap-4 border-b border-slate-100 py-3 last:border-b-0">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-slate-800">{label}</p>
+                    <p className="mt-0.5 text-sm text-slate-500">{description}</p>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={enabled}
+                    aria-label={`${label} notifications`}
+                    disabled={savingChannel !== null}
+                    onClick={() => toggleChannel(id)}
+                    className={`relative h-6 w-11 shrink-0 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 disabled:opacity-60 ${enabled ? "bg-emerald-500" : "bg-slate-300"}`}
+                  >
+                    <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${enabled ? "left-[1.375rem]" : "left-0.5"}`} />
+                  </button>
+                </div>
+              );
+            })}
+
+            {saveError && (
+              <div role="alert" className="mt-4 flex items-start gap-2 rounded-xl bg-red-50 p-3 text-sm text-red-700">
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>{saveError}</span>
+              </div>
+            )}
+          </div>
+        )}
       </ContentCard>
     </div>
   );
@@ -275,11 +344,6 @@ export default function SettingsPage() {
   const currentSection = settingsSections.find((item) => item.id === section) ?? settingsSections[0];
 
   useEffect(() => {
-    if (!localStorage.getItem("accessToken")) {
-      router.replace("/");
-      return;
-    }
-
     Promise.all([dashboardApi.getMe(), dashboardApi.getWallet()])
       .then(([profileResponse, walletResponse]) => {
         setProfile(profileResponse);
@@ -293,6 +357,14 @@ export default function SettingsPage() {
     router.push(nextSection === "profile" ? "/settings" : `/settings?section=${nextSection}`);
   };
 
+  /**
+   * A successful upload moves KYC to PENDING, so the status shown here is
+   * refreshed from the upload response instead of requiring a reload.
+   */
+  const applyKycStatus = useCallback((status: KycStatus) => {
+    setProfile((current) => (current ? { ...current, kyc: { ...current.kyc, status } } : current));
+  }, []);
+
   if (loading) {
     return <div className="flex flex-1 items-center justify-center bg-white text-slate-700">Loading settings...</div>;
   }
@@ -302,7 +374,7 @@ export default function SettingsPage() {
   const emailStatus = profile?.account.isEmailVerified ? "Verified" : "Unverified";
 
   return (
-    <div className="flex flex-1 flex-col bg-[#ededed] grayscale">
+    <div className="flex flex-1 flex-col bg-[#ededed]">
       <main className="min-w-0 flex-1 bg-white px-4 py-5 sm:px-6 sm:py-6">
         <div className="mx-auto w-full max-w-[1280px]">
           <div className="mb-6">
@@ -383,7 +455,7 @@ export default function SettingsPage() {
               ) : section === "security" ? (
                 <SecuritySection />
               ) : section === "kyc" ? (
-                <KycSection profile={profile} />
+                <KycSection profile={profile} onStatusChange={applyKycStatus} />
               ) : section === "notifications" ? (
                 <NotificationsSection />
               ) : (

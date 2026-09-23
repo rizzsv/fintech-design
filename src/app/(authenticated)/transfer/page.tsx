@@ -7,9 +7,7 @@ import { ArrowLeft, CheckCircle2, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { dashboardApi } from "@/features/dashboard/api";
-import type { TransferResponse, WalletResponse } from "@/features/dashboard/types";
-
-const TRANSFER_FEE = 2500;
+import type { TransferConfig, TransferResponse, WalletResponse } from "@/features/dashboard/types";
 
 function formatCurrency(value: number | string) {
   return new Intl.NumberFormat("id-ID", {
@@ -26,6 +24,7 @@ function isUuid(value: string) {
 export default function TransferPage() {
   const router = useRouter();
   const [wallet, setWallet] = useState<WalletResponse | null>(null);
+  const [config, setConfig] = useState<TransferConfig | null>(null);
   const [recipient, setRecipient] = useState("");
   const [amount, setAmount] = useState("100000");
   const [description, setDescription] = useState("");
@@ -35,21 +34,58 @@ export default function TransferPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
+  /**
+   * The fee and the amount cap come from `GET /transaction/config` rather than
+   * being duplicated here, so the figures shown are the ones the server
+   * enforces.
+   */
   useEffect(() => {
-    if (!localStorage.getItem("accessToken")) {
-      router.replace("/");
-      return;
-    }
-
-    dashboardApi
-      .getWallet()
-      .then(setWallet)
-      .catch((err) => setError(err instanceof Error ? err.message : "Unable to load wallet"))
+    Promise.all([dashboardApi.getWallet(), dashboardApi.getTransferConfig()])
+      .then(([walletResponse, configResponse]) => {
+        setWallet(walletResponse);
+        setConfig(configResponse);
+      })
+      .catch((err) => setError(err instanceof Error ? err.message : "Unable to load transfer details"))
       .finally(() => setLoading(false));
-  }, [router]);
+  }, []);
 
-  const fee = TRANSFER_FEE;
+  if (loading) {
+    return <div className="flex flex-1 items-center justify-center bg-white text-slate-700">Loading wallet...</div>;
+  }
+
+  /**
+   * Rendering the form without the config would show a Rp0 fee and understate
+   * the total debit, so the failure is surfaced instead of guessed around.
+   */
+  if (!wallet || !config) {
+    return (
+      <div className="flex flex-1 flex-col items-center justify-center gap-4 bg-white px-6 text-center">
+        <div>
+          <h1 className="text-lg font-semibold text-[#0e2a5c]">Transfer is unavailable</h1>
+          <p role="alert" className="mt-2 max-w-sm text-sm text-slate-600">
+            {error || "We could not load your wallet and transfer settings."}
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <Button type="button" onClick={() => window.location.reload()} className="h-11 rounded-full px-5">
+            Try again
+          </Button>
+          <Button type="button" variant="ghost" onClick={() => router.push("/dashboard")} className="h-11 rounded-full px-5 text-slate-700">
+            Back to dashboard
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  const { fee, maxAmount } = config;
   const parsedAmount = amount === "" ? 0 : Number(amount);
+
+  /**
+   * The transfer fee is charged on top of the amount, so the sender is debited
+   * `amount + fee` while the recipient is credited `amount`. Carving the fee out
+   * of the amount instead would understate the debit.
+   */
   const totalDebit = parsedAmount + fee;
   const activeStep = confirmation ? 3 : recipient.trim() ? 2 : 1;
 
@@ -65,7 +101,11 @@ export default function TransferPage() {
       setError("Enter a valid transfer amount.");
       return;
     }
-    if (Number(wallet?.balance ?? 0) < totalDebit) {
+    if (parsedAmount > maxAmount) {
+      setError(`A single transfer cannot exceed ${formatCurrency(maxAmount)}.`);
+      return;
+    }
+    if (Number(wallet.balance) < totalDebit) {
       setError("Insufficient balance for this transfer and fee.");
       return;
     }
@@ -77,16 +117,17 @@ export default function TransferPage() {
     setSubmitting(true);
     try {
       setResult(await dashboardApi.createTransfer(recipient.trim(), parsedAmount, description.trim() || undefined));
+      setConfirmation(false);
+
+      // The balance just changed, so pull the authoritative value back.
+      const refreshed = await dashboardApi.getWallet().catch(() => null);
+      if (refreshed) setWallet(refreshed);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to complete transfer");
     } finally {
       setSubmitting(false);
     }
   };
-
-  if (loading) {
-    return <div className="flex flex-1 items-center justify-center bg-white text-slate-700">Loading wallet...</div>;
-  }
 
   const guideSteps = [
     {
@@ -95,7 +136,7 @@ export default function TransferPage() {
     },
     {
       title: "Set the amount",
-      description: `Enter a whole IDR amount. The existing transfer fee of ${formatCurrency(fee)} is shown before you continue.`,
+      description: `Enter a whole IDR amount up to ${formatCurrency(maxAmount)}. The ${formatCurrency(fee)} transfer fee is shown before you continue.`,
     },
     {
       title: "Review and confirm",
@@ -104,7 +145,7 @@ export default function TransferPage() {
   ];
 
   return (
-    <div className="flex flex-1 flex-col bg-[#ededed] grayscale lg:h-[calc(100dvh-4rem)] lg:min-h-0 lg:overflow-hidden">
+    <div className="flex flex-1 flex-col bg-[#ededed] lg:h-[calc(100dvh-4rem)] lg:min-h-0 lg:overflow-hidden">
       <main className="min-w-0 flex-1 bg-white px-4 py-4 sm:px-6 sm:py-5 lg:min-h-0 lg:overflow-hidden lg:py-4">
         <div className="mx-auto grid h-full w-full max-w-[1400px] gap-6 lg:grid-cols-[minmax(0,0.78fr)_minmax(540px,1.12fr)] lg:items-center lg:gap-10 xl:gap-14">
           <section aria-labelledby="transfer-guide-title" className="min-w-0 max-w-xl lg:flex lg:flex-col lg:py-1">
@@ -161,7 +202,7 @@ export default function TransferPage() {
 
                 <div className="mt-7 rounded-[24px] bg-[#0e2a5c] p-5 text-white shadow-sm lg:mt-6 lg:p-4">
                   <p className="text-sm font-medium text-blue-100">Available balance</p>
-                  <p className="mt-1 text-2xl font-bold tracking-tight">{formatCurrency(wallet?.balance ?? 0)}</p>
+                  <p className="mt-1 text-2xl font-bold tracking-tight">{formatCurrency(wallet.balance)}</p>
                   <p className="mt-2 text-sm leading-5 text-blue-100">The final transfer checks remain in place when you submit.</p>
                 </div>
             </div>
@@ -225,7 +266,9 @@ export default function TransferPage() {
                             aria-describedby="amount-help"
                           />
                         </div>
-                        <p id="amount-help" className="mt-2 text-xs leading-5 text-slate-500 lg:mt-1 lg:leading-4">Enter a whole IDR amount. Minimum Rp1.</p>
+                        <p id="amount-help" className="mt-2 text-xs leading-5 text-slate-500 lg:mt-1 lg:leading-4">
+                          Enter a whole IDR amount, up to {formatCurrency(maxAmount)} per transfer.
+                        </p>
                       </div>
 
                       <div>

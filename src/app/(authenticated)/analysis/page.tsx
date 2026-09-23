@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import {
   ArrowDownLeft,
   ArrowUpRight,
@@ -35,9 +34,24 @@ const transactionTypes: Array<{ value: TransactionType | ""; label: string }> = 
   { value: "WITHDRAWAL", label: "Withdraw" },
   { value: "REFUND", label: "Refund" },
 ];
+
+/** Every status `GET /transaction` accepts, so the filter can reach all of them. */
+const statusLabels: Record<TransactionStatus, string> = {
+  CREATED: "Dibuat",
+  PENDING: "Menunggu",
+  PROCESSING: "Diproses",
+  SUCCESS: "Berhasil",
+  FAILED: "Gagal",
+  CANCELLED: "Dibatalkan",
+  REVERSED: "Dikembalikan",
+};
+
 const transactionStatuses: Array<{ value: TransactionStatus | ""; label: string }> = [
   { value: "", label: "Semua Status" },
-  { value: "SUCCESS", label: "Berhasil" },
+  ...(Object.keys(statusLabels) as TransactionStatus[]).map((value) => ({
+    value,
+    label: statusLabels[value],
+  })),
 ];
 
 function formatCurrency(value: number | string) {
@@ -66,8 +80,18 @@ function transactionLabel(type: TransactionType, incoming: boolean) {
   return type === "TRANSFER" ? `${labels[type]} ${incoming ? "Masuk" : "Keluar"}` : labels[type];
 }
 
-function statusLabel(status: string) {
-  return status === "SUCCESS" ? "Berhasil" : status;
+function statusLabel(status: TransactionStatus) {
+  return statusLabels[status] ?? status;
+}
+
+/**
+ * Only SUCCESS is settled; the terminal failure states read as failures and
+ * everything else is still in flight.
+ */
+function statusDotClass(status: TransactionStatus) {
+  if (status === "SUCCESS") return "bg-emerald-500";
+  if (status === "FAILED" || status === "CANCELLED" || status === "REVERSED") return "bg-rose-500";
+  return "bg-amber-500";
 }
 
 function TransactionSkeleton() {
@@ -93,7 +117,6 @@ function TransactionSkeleton() {
 }
 
 export default function AnalysisPage() {
-  const router = useRouter();
   const [transactions, setTransactions] = useState<TransactionItem[]>([]);
   const [pagination, setPagination] = useState<TransactionsResponse["pagination"] | null>(null);
   const [wallet, setWallet] = useState<WalletResponse | null>(null);
@@ -123,11 +146,6 @@ export default function AnalysisPage() {
   }, []);
 
   useEffect(() => {
-    if (!localStorage.getItem("accessToken")) {
-      router.replace("/");
-      return;
-    }
-
     let active = true;
     const loadInitialData = async () => {
       setLoading(true);
@@ -151,7 +169,7 @@ export default function AnalysisPage() {
     return () => {
       active = false;
     };
-  }, [loadTransactions, router]);
+  }, [loadTransactions]);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -240,7 +258,7 @@ export default function AnalysisPage() {
   };
 
   return (
-    <div className="flex flex-1 flex-col bg-[#ededed] grayscale">
+    <div className="flex flex-1 flex-col bg-[#ededed]">
       <div className="flex w-full flex-1 flex-col bg-white">
         <main className="min-w-0 flex-1 bg-white px-4 py-4 sm:px-6 sm:py-5">
           <div className="w-full space-y-6">
@@ -312,7 +330,6 @@ export default function AnalysisPage() {
               <div className="divide-y divide-slate-100 rounded-xl border border-slate-100">
                 {transactions.map((item) => {
                   const incoming = item.transactionType === "TOPUP" || item.toWalletId === wallet?.id;
-                  const statusClass = item.status === "SUCCESS" ? "bg-emerald-500" : "bg-slate-400";
                   return (
                     <button type="button" key={item.id} onClick={() => openTransactionDetail(item.id)} className="flex w-full items-center justify-between gap-3 px-3 py-4 text-left transition-colors hover:bg-slate-50 focus-visible:bg-sky-50 focus-visible:outline-none sm:gap-5 sm:px-4">
                       <div className="flex min-w-0 items-center gap-3">
@@ -326,7 +343,7 @@ export default function AnalysisPage() {
                       </div>
                       <span className="shrink-0 text-right">
                         <span className={`block text-sm font-semibold tabular-nums ${incoming ? "text-emerald-700" : "text-rose-700"}`}>{incoming ? "+" : "-"}{formatCurrency(item.amount)}</span>
-                        <span className="mt-1 flex items-center justify-end gap-1.5 text-xs text-slate-500"><span className={`h-1.5 w-1.5 rounded-full ${statusClass}`} aria-hidden="true" />{statusLabel(item.status)}</span>
+                        <span className="mt-1 flex items-center justify-end gap-1.5 text-xs text-slate-500"><span className={`h-1.5 w-1.5 rounded-full ${statusDotClass(item.status)}`} aria-hidden="true" />{statusLabel(item.status)}</span>
                       </span>
                     </button>
                   );
@@ -365,10 +382,24 @@ export default function AnalysisPage() {
             </div>
             {detailLoading && <TransactionSkeleton />}
             {detailError && <div className="rounded-xl border border-red-100 bg-red-50 p-4 text-sm text-red-700">{detailError}</div>}
-            {selectedTransaction && !detailLoading && !detailError && (
+            {selectedTransaction && !detailLoading && !detailError && (() => {
+              const detailIncoming =
+                selectedTransaction.transactionType === "TOPUP" ||
+                selectedTransaction.toWalletId === wallet?.id;
+
+              /**
+               * For money coming in the other party is the sender, for money
+               * going out it is the recipient. A top up has no counterparty
+               * wallet, so nothing is shown.
+               */
+              const counterparty = detailIncoming
+                ? selectedTransaction.fromWallet
+                : selectedTransaction.toWallet;
+
+              return (
               <div className="space-y-4">
                 <div className="rounded-2xl bg-slate-900 p-5 text-white">
-                  <p className="text-sm text-slate-300">{transactionLabel(selectedTransaction.transactionType, selectedTransaction.transactionType === "TOPUP" || selectedTransaction.toWalletId === wallet?.id)}</p>
+                  <p className="text-sm text-slate-300">{transactionLabel(selectedTransaction.transactionType, detailIncoming)}</p>
                   <p className="mt-2 text-3xl font-semibold tabular-nums">{formatCurrency(selectedTransaction.amount)}</p>
                   <p className="mt-2 text-xs text-slate-300">{statusLabel(selectedTransaction.status)}</p>
                 </div>
@@ -376,11 +407,13 @@ export default function AnalysisPage() {
                   <div className="rounded-xl bg-slate-50 p-4"><p className="text-xs text-slate-500">Tanggal</p><p className="mt-1 text-sm font-semibold text-slate-800">{formatDate(selectedTransaction.createdAt)}</p></div>
                   <div className="rounded-xl bg-slate-50 p-4"><p className="text-xs text-slate-500">Tipe transaksi</p><p className="mt-1 text-sm font-semibold text-slate-800">{selectedTransaction.transactionType}</p></div>
                 </div>
+                {counterparty?.user && <div className="flex items-center justify-between gap-4 border-b border-slate-100 pb-3 text-sm"><span className="text-slate-500">{detailIncoming ? "Dari" : "Kepada"}</span><span className="max-w-56 truncate font-medium text-slate-800">{counterparty.user.email}</span></div>}
                 {selectedTransaction.fee !== undefined && selectedTransaction.fee !== null && <div className="flex items-center justify-between gap-4 border-b border-slate-100 pb-3 text-sm"><span className="text-slate-500">Fee</span><span className="font-medium text-slate-800">{formatCurrency(selectedTransaction.fee)}</span></div>}
                 {selectedTransaction.referenceNumber && <div className="flex items-center justify-between gap-4 border-b border-slate-100 pb-3 text-sm"><span className="text-slate-500">Reference</span><span className="max-w-56 truncate font-medium text-slate-800">{selectedTransaction.referenceNumber}</span></div>}
                 {selectedTransaction.description && <div className="flex items-start justify-between gap-4 text-sm"><span className="shrink-0 text-slate-500">Description</span><span className="text-right font-medium text-slate-800">{selectedTransaction.description}</span></div>}
               </div>
-            )}
+              );
+            })()}
           </div>
         </div>
       )}
