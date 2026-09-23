@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { formatCurrency } from '@/lib/format';
 import { cashFlowTone, chartNeutral } from '@/features/dashboard/cash-flow-colors';
 import type { CashFlowSeriesItem } from '@/features/dashboard/types';
@@ -9,23 +9,109 @@ interface CashFlowChartProps {
   series: CashFlowSeriesItem[];
 }
 
-// Format Y-axis label compactly
-function formatYAxisLabel(value: number): string {
-  if (value >= 1000000) {
-    return `Rp ${(value / 1000000).toFixed(1)}jt`;
-  }
-  if (value >= 1000) {
-    return `Rp ${(value / 1000).toFixed(0)}rb`;
-  }
-  return `Rp ${value}`;
+interface Point {
+  x: number;
+  y: number;
 }
 
-// Get responsive label interval based on data length (no window.innerWidth)
+const SVG_WIDTH = 440;
+const SVG_HEIGHT = 300;
+const PADDING = { top: 20, right: 16, bottom: 36, left: 64 };
+const PLOT_WIDTH = SVG_WIDTH - PADDING.left - PADDING.right;
+const PLOT_HEIGHT = SVG_HEIGHT - PADDING.top - PADDING.bottom;
+const PLOT_BOTTOM = PADDING.top + PLOT_HEIGHT;
+const GRID_COUNT = 5;
+
+const TOOLTIP_WIDTH = 160;
+const TOOLTIP_HEIGHT = 86;
+
+/**
+ * Steps that still read as round numbers once the `rb`/`jt` suffix is applied.
+ * A coarser ladder rounds too far up and leaves the peak of the series sitting
+ * halfway up the plot.
+ */
+const NICE_STEPS = [1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10];
+
+/**
+ * Axis labels are only readable when they land on round numbers, so the top of
+ * the scale is raised to the next round step. Scaling the maximum by a fixed
+ * factor instead produced labels such as "Rp 1.3jt".
+ */
+function niceAxisMax(maxValue: number): number {
+  const roughStep = maxValue / GRID_COUNT;
+  const magnitude = 10 ** Math.floor(Math.log10(roughStep));
+  const normalized = roughStep / magnitude;
+  const step = (NICE_STEPS.find((candidate) => candidate >= normalized) ?? 10) * magnitude;
+
+  return Math.max(1, step) * GRID_COUNT;
+}
+
+/**
+ * Trims trailing zeros and float residue so a round step renders as "Rp 1jt"
+ * rather than "Rp 1.0jt", without rounding 1.25 away to an inaccurate "1.3".
+ */
+function compactNumber(value: number): number {
+  return parseFloat(value.toFixed(2));
+}
+
+function formatYAxisLabel(value: number): string {
+  if (value >= 1_000_000) {
+    return `Rp ${compactNumber(value / 1_000_000)}jt`;
+  }
+
+  if (value >= 1_000) {
+    return `Rp ${compactNumber(value / 1_000)}rb`;
+  }
+
+  return `Rp ${compactNumber(value)}`;
+}
+
+function formatAxisDate(date: string): string {
+  return new Date(date).toLocaleDateString('id-ID', { month: 'short', day: 'numeric' });
+}
+
+// Keep the date row legible: a 30 day range cannot carry 30 labels at this width.
 function getLabelInterval(seriesLength: number): number {
-  if (seriesLength <= 8) return 1; // Show all
-  if (seriesLength <= 14) return 2; // Every 2nd
-  if (seriesLength <= 30) return 3; // Every 3rd
-  return Math.ceil(seriesLength / 10); // ~10 labels max
+  if (seriesLength <= 8) return 1;
+  if (seriesLength <= 14) return 2;
+  if (seriesLength <= 30) return 3;
+
+  return Math.ceil(seriesLength / 10);
+}
+
+/**
+ * Catmull-Rom control points give a curve that passes through every value with
+ * symmetric tangents on both sides of it. A single quadratic control point per
+ * segment bends each segment towards its start instead, which leaves a visible
+ * kink at every data point.
+ */
+const SPLINE_TENSION = 0.5;
+
+function buildSplinePath(points: Point[]): string {
+  if (points.length === 0) return '';
+  if (points.length === 1) return `M ${points[0].x} ${points[0].y}`;
+
+  // Amounts are never negative, so no control point may pull the curve below
+  // the zero baseline or above the top of the scale.
+  const clampY = (y: number) => Math.min(Math.max(y, PADDING.top), PLOT_BOTTOM);
+
+  let path = `M ${points[0].x} ${points[0].y}`;
+
+  for (let i = 0; i < points.length - 1; i += 1) {
+    const previous = points[i - 1] ?? points[i];
+    const start = points[i];
+    const end = points[i + 1];
+    const next = points[i + 2] ?? end;
+
+    const firstControlX = start.x + ((end.x - previous.x) / 6) * SPLINE_TENSION;
+    const firstControlY = clampY(start.y + ((end.y - previous.y) / 6) * SPLINE_TENSION);
+    const secondControlX = end.x - ((next.x - start.x) / 6) * SPLINE_TENSION;
+    const secondControlY = clampY(end.y - ((next.y - start.y) / 6) * SPLINE_TENSION);
+
+    path += ` C ${firstControlX} ${firstControlY} ${secondControlX} ${secondControlY} ${end.x} ${end.y}`;
+  }
+
+  return path;
 }
 
 export function CashFlowChart({ series }: CashFlowChartProps) {
@@ -36,27 +122,40 @@ export function CashFlowChart({ series }: CashFlowChartProps) {
       return null;
     }
 
-    // Parse all values for calculation
     const incomeValues = series.map((item) => parseFloat(item.income) || 0);
     const expenseValues = series.map((item) => parseFloat(item.expense) || 0);
 
-    // Get actual maximum (no percentile, keep all data visible)
     let maxValue = Math.max(...incomeValues, ...expenseValues);
 
-    // Handle edge case: all zeros
+    // A period with no movement still needs a scale to draw the baseline on.
     if (maxValue === 0 || !isFinite(maxValue)) {
       maxValue = 1;
     }
 
-    // Add 15% padding to top for visual breathing room
-    const paddedMaxValue = maxValue * 1.15;
+    const axisMax = niceAxisMax(maxValue);
+    const yScale = PLOT_HEIGHT / axisMax;
+    const xScale = PLOT_WIDTH / (series.length - 1 || 1);
+
+    const toPoints = (values: number[]): Point[] =>
+      values.map((value, index) => ({
+        x: PADDING.left + index * xScale,
+        y: PLOT_BOTTOM - value * yScale,
+      }));
+
+    const incomePoints = toPoints(incomeValues);
+    const expensePoints = toPoints(expenseValues);
+    const incomePath = buildSplinePath(incomePoints);
 
     return {
-      incomeValues,
-      expenseValues,
-      maxValue,
-      paddedMaxValue,
-      length: series.length,
+      axisMax,
+      xScale,
+      incomePoints,
+      expensePoints,
+      incomePath,
+      expensePath: buildSplinePath(expensePoints),
+      incomeAreaPath: incomePath
+        ? `${incomePath} L ${incomePoints[incomePoints.length - 1].x} ${PLOT_BOTTOM} L ${incomePoints[0].x} ${PLOT_BOTTOM} Z`
+        : '',
     };
   }, [series]);
 
@@ -64,218 +163,36 @@ export function CashFlowChart({ series }: CashFlowChartProps) {
     return null;
   }
 
-  // SVG constants.
-  // The viewBox is sized close to the real rendered width of the dashboard's
-  // right-hand column. `preserveAspectRatio="xMidYMid meet"` scales the whole
-  // canvas uniformly, so an oversized viewBox would shrink the tick labels below
-  // legibility and letterbox the chart inside its container.
-  const SVG_WIDTH = 440;
-  const SVG_HEIGHT = 300;
-  const PADDING = { top: 16, right: 14, bottom: 34, left: 62 };
-  const PLOT_WIDTH = SVG_WIDTH - PADDING.left - PADDING.right;
-  const PLOT_HEIGHT = SVG_HEIGHT - PADDING.top - PADDING.bottom;
+  const { axisMax, xScale, incomePoints, expensePoints } = chartData;
 
-  // Calculate scales
-  const yScale = PLOT_HEIGHT / (chartData.paddedMaxValue || 1);
-  const xScale = PLOT_WIDTH / (chartData.length - 1 || 1);
-
-  // Generate smooth Bezier path
-  const generateBezierPath = (values: number[]): string => {
-    if (values.length === 0) return '';
-
-    const points = values.map((value, i) => ({
-      x: PADDING.left + i * xScale,
-      y: PADDING.top + PLOT_HEIGHT - value * yScale,
-    }));
-
-    if (points.length === 1) {
-      return `M ${points[0].x} ${points[0].y}`;
-    }
-
-    let path = `M ${points[0].x} ${points[0].y}`;
-
-    for (let i = 1; i < points.length; i++) {
-      const prev = points[i - 1];
-      const curr = points[i];
-
-      const cp1x = prev.x + (curr.x - prev.x) / 2;
-      const cp1y = prev.y + (curr.y - prev.y) * 0.2;
-
-      path += ` Q ${cp1x} ${cp1y} ${curr.x} ${curr.y}`;
-    }
-
-    return path;
-  };
-
-  // Generate area path for fill
-  const generateAreaPath = (values: number[]): string => {
-    if (values.length === 0) return '';
-
-    const pointsPath = generateBezierPath(values);
-    const lastPoint = {
-      x: PADDING.left + (values.length - 1) * xScale,
-      y: PADDING.top + PLOT_HEIGHT,
-    };
-    const firstPoint = {
-      x: PADDING.left,
-      y: PADDING.top + PLOT_HEIGHT,
-    };
-
-    return `${pointsPath} L ${lastPoint.x} ${lastPoint.y} L ${firstPoint.x} ${firstPoint.y} Z`;
-  };
-
-  const incomePath = generateBezierPath(chartData.incomeValues);
-  const expensePath = generateBezierPath(chartData.expenseValues);
-  const incomeAreaPath = generateAreaPath(chartData.incomeValues);
-
-  // Smart tooltip positioning with boundary detection (kept for future re-enabling)
+  /**
+   * The card keeps the tooltip inside the plot so it is never clipped by the
+   * SVG edge, and drops below the point when there is no room above it.
+   */
   const getTooltipPosition = (xCoord: number, yCoord: number) => {
-    const tooltipWidth = 160;
-    const tooltipHeight = 75;
-    const PADDING_EDGE = 10;
+    const edge = 10;
+    const minX = PADDING.left + edge;
+    const maxX = SVG_WIDTH - PADDING.right - edge - TOOLTIP_WIDTH;
 
-    let tooltipX = xCoord - tooltipWidth / 2;
-    let tooltipY = yCoord - tooltipHeight - 10;
+    const x = Math.min(Math.max(xCoord - TOOLTIP_WIDTH / 2, minX), Math.max(minX, maxX));
+    const above = yCoord - TOOLTIP_HEIGHT - 10;
+    const y = above < PADDING.top + edge ? yCoord + 15 : above;
 
-    if (tooltipX < PADDING.left + PADDING_EDGE) {
-      tooltipX = PADDING.left + PADDING_EDGE;
-    }
-
-    if (tooltipX + tooltipWidth > SVG_WIDTH - PADDING.right - PADDING_EDGE) {
-      tooltipX = SVG_WIDTH - PADDING.right - PADDING_EDGE - tooltipWidth;
-    }
-
-    if (tooltipY < PADDING.top + PADDING_EDGE) {
-      tooltipY = yCoord + 15;
-    }
-
-    return { x: tooltipX, y: tooltipY };
+    return { x, y };
   };
 
-  // Generate gridlines
-  const gridLines = [];
-  const gridCount = 4;
-  for (let i = 0; i <= gridCount; i++) {
-    const y = PADDING.top + (PLOT_HEIGHT / gridCount) * i;
-    gridLines.push(
-      <line
-        key={`grid-${i}`}
-        x1={PADDING.left}
-        y1={y}
-        x2={SVG_WIDTH - PADDING.right}
-        y2={y}
-        stroke={chartNeutral.gridline}
-        strokeWidth="1"
-      />
-    );
-  }
-
-  // Generate Y-axis labels
-  const yLabels = [];
-  for (let i = 0; i <= gridCount; i++) {
-    const y = PADDING.top + (PLOT_HEIGHT / gridCount) * i;
-    const value = Math.round(chartData.paddedMaxValue - (chartData.paddedMaxValue / gridCount) * i);
-    yLabels.push(
-      <text
-        key={`y-label-${i}`}
-        x={PADDING.left - 10}
-        y={y + 3}
-        fontSize="10"
-        fill={chartNeutral.tickLabel}
-        textAnchor="end"
-      >
-        {formatYAxisLabel(value)}
-      </text>
-    );
-  }
-
-  // Generate X-axis labels with responsive interval
   const labelInterval = getLabelInterval(series.length);
-  const xLabels = [];
-  for (let i = 0; i < series.length; i += labelInterval) {
-    const x = PADDING.left + i * xScale;
-    const date = new Date(series[i].date);
-    const label = date.toLocaleDateString('id-ID', { month: 'short', day: 'numeric' });
-    xLabels.push(
-      <text
-        key={`x-label-${i}`}
-        x={x}
-        y={SVG_HEIGHT - PADDING.bottom + 18}
-        fontSize="10"
-        fill={chartNeutral.tickLabel}
-        textAnchor="middle"
-      >
-        {label}
-      </text>
-    );
-  }
-
-  // Generate data points
-  const dataPoints: React.ReactNode[] = [];
-  chartData.incomeValues.forEach((value, i) => {
-    const x = PADDING.left + i * xScale;
-    const y = PADDING.top + PLOT_HEIGHT - value * yScale;
-    dataPoints.push(
-      <circle
-        key={`income-point-${i}`}
-        cx={x}
-        cy={y}
-        r="2.8"
-        fill="#ffffff"
-        stroke={cashFlowTone.income.hex}
-        strokeWidth="1.75"
-        onMouseEnter={() => setHoveredIndex(i)}
-        onMouseLeave={() => setHoveredIndex(null)}
-        className="cursor-pointer"
-      />
-    );
-  });
-
-  chartData.expenseValues.forEach((value, i) => {
-    const x = PADDING.left + i * xScale;
-    const y = PADDING.top + PLOT_HEIGHT - value * yScale;
-    dataPoints.push(
-      <circle
-        key={`expense-point-${i}`}
-        cx={x}
-        cy={y}
-        r="2.8"
-        fill="#ffffff"
-        stroke={cashFlowTone.expense.hex}
-        strokeWidth="1.75"
-        onMouseEnter={() => setHoveredIndex(i)}
-        onMouseLeave={() => setHoveredIndex(null)}
-        className="cursor-pointer"
-      />
-    );
-  });
-
-  const tooltip =
-    hoveredIndex !== null
-      ? {
-          line: (
-            <line
-              x1={PADDING.left + hoveredIndex * xScale}
-              y1={PADDING.top}
-              x2={PADDING.left + hoveredIndex * xScale}
-              y2={PADDING.top + PLOT_HEIGHT}
-              stroke={chartNeutral.crosshair}
-              strokeWidth="1"
-              strokeDasharray="4"
-              opacity="0.8"
-            />
-          ),
-          position: getTooltipPosition(
-            PADDING.left + hoveredIndex * xScale,
-            PADDING.top + PLOT_HEIGHT - chartData.incomeValues[hoveredIndex] * yScale
-          ),
-          data: series[hoveredIndex],
-        }
-      : null;
+  const hovered = hoveredIndex === null ? null : series[hoveredIndex];
+  const tooltipPosition =
+    hoveredIndex === null
+      ? null
+      : getTooltipPosition(
+          PADDING.left + hoveredIndex * xScale,
+          Math.min(incomePoints[hoveredIndex].y, expensePoints[hoveredIndex].y)
+        );
 
   return (
     <div className="w-full h-full flex flex-col min-h-0">
-      {/* Chart Area */}
       <div className="relative flex-1 min-h-0 overflow-hidden">
         <svg
           width="100%"
@@ -283,125 +200,251 @@ export function CashFlowChart({ series }: CashFlowChartProps) {
           viewBox={`0 0 ${SVG_WIDTH} ${SVG_HEIGHT}`}
           preserveAspectRatio="xMidYMid meet"
           className="block"
+          role="img"
+          aria-label="Daily income and expense for the selected period"
+          onMouseLeave={() => setHoveredIndex(null)}
         >
           <defs>
-            {/* Income gradient: top 26% opacity → bottom 2% opacity */}
             <linearGradient id="incomeGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={cashFlowTone.income.hex} stopOpacity="0.26" />
-              <stop offset="100%" stopColor={cashFlowTone.income.hex} stopOpacity="0.02" />
+              <stop offset="0%" stopColor={cashFlowTone.income.hex} stopOpacity="0.18" />
+              <stop offset="100%" stopColor={cashFlowTone.income.hex} stopOpacity="0.01" />
             </linearGradient>
           </defs>
 
-          {/* Gridlines */}
-          {gridLines}
+          {/* Horizontal gridlines only, dashed, with no axis rules of their own */}
+          {Array.from({ length: GRID_COUNT + 1 }, (_, index) => {
+            const y = PADDING.top + (PLOT_HEIGHT / GRID_COUNT) * index;
 
-          {/* Y-axis */}
-          <line
-            x1={PADDING.left}
-            y1={PADDING.top}
-            x2={PADDING.left}
-            y2={PADDING.top + PLOT_HEIGHT}
-            stroke={chartNeutral.axis}
-            strokeWidth="1"
-          />
+            return (
+              <line
+                key={`grid-${index}`}
+                x1={PADDING.left}
+                y1={y}
+                x2={SVG_WIDTH - PADDING.right}
+                y2={y}
+                stroke={chartNeutral.gridline}
+                strokeWidth="1"
+                strokeDasharray="3,4"
+              />
+            );
+          })}
 
-          {/* X-axis */}
-          <line
-            x1={PADDING.left}
-            y1={PADDING.top + PLOT_HEIGHT}
-            x2={SVG_WIDTH - PADDING.right}
-            y2={PADDING.top + PLOT_HEIGHT}
-            stroke={chartNeutral.axis}
-            strokeWidth="1"
-          />
+          {Array.from({ length: GRID_COUNT + 1 }, (_, index) => {
+            const y = PADDING.top + (PLOT_HEIGHT / GRID_COUNT) * index;
+            const value = axisMax - (axisMax / GRID_COUNT) * index;
 
-          {/* Y-axis labels */}
-          {yLabels}
+            return (
+              <text
+                key={`y-label-${index}`}
+                x={PADDING.left - 12}
+                y={y + 3}
+                fontSize="10"
+                fill={chartNeutral.tickLabel}
+                textAnchor="end"
+              >
+                {formatYAxisLabel(value)}
+              </text>
+            );
+          })}
 
-          {/* X-axis labels */}
-          {xLabels}
+          {series.map((item, index) =>
+            index % labelInterval === 0 ? (
+              <text
+                key={`x-label-${item.date}`}
+                x={PADDING.left + index * xScale}
+                y={PLOT_BOTTOM + 18}
+                fontSize="10"
+                fill={chartNeutral.tickLabel}
+                textAnchor="middle"
+              >
+                {formatAxisDate(item.date)}
+              </text>
+            ) : null
+          )}
 
-          {/* Income area fill with gradient */}
-          {incomeAreaPath && <path d={incomeAreaPath} fill="url(#incomeGradient)" />}
+          {hoveredIndex !== null && (
+            <line
+              x1={PADDING.left + hoveredIndex * xScale}
+              y1={PADDING.top}
+              x2={PADDING.left + hoveredIndex * xScale}
+              y2={PLOT_BOTTOM}
+              stroke={chartNeutral.crosshair}
+              strokeWidth="1"
+              strokeDasharray="4"
+            />
+          )}
 
-          {/* Income line (solid) */}
+          {chartData.incomeAreaPath && (
+            <path d={chartData.incomeAreaPath} fill="url(#incomeGradient)" />
+          )}
+
           <path
-            d={incomePath}
+            d={chartData.incomePath}
             stroke={cashFlowTone.income.hex}
-            strokeWidth="2"
+            strokeWidth="2.5"
             fill="none"
             strokeLinecap="round"
             strokeLinejoin="round"
           />
 
-          {/* Expense line (dashed) */}
           <path
-            d={expensePath}
+            d={chartData.expensePath}
             stroke={cashFlowTone.expense.hex}
-            strokeWidth="2"
+            strokeWidth="2.5"
             fill="none"
-            strokeDasharray="5,3"
+            strokeDasharray="6,4"
             strokeLinecap="round"
             strokeLinejoin="round"
           />
 
-          {/* Data points */}
-          {dataPoints}
+          {/*
+            A marker per day would put one dot every few pixels across a month,
+            so only the hovered day is marked.
+          */}
+          {hoveredIndex !== null && (
+            <>
+              <circle
+                cx={incomePoints[hoveredIndex].x}
+                cy={incomePoints[hoveredIndex].y}
+                r="4"
+                fill="#ffffff"
+                stroke={cashFlowTone.income.hex}
+                strokeWidth="2"
+              />
+              <circle
+                cx={expensePoints[hoveredIndex].x}
+                cy={expensePoints[hoveredIndex].y}
+                r="4"
+                fill="#ffffff"
+                stroke={cashFlowTone.expense.hex}
+                strokeWidth="2"
+              />
+            </>
+          )}
 
-          <g
-            className="pointer-events-none"
-            style={{ opacity: tooltip ? 1 : 0, transition: 'opacity 180ms ease, transform 180ms ease' }}
-          >
-            {tooltip && (
-              <>
-                {tooltip.line}
-                <g transform={`translate(${tooltip.position.x}, ${tooltip.position.y})`}>
-                <rect x="0" y="0" width="160" height="86" rx="8" fill={chartNeutral.tooltipSurface} stroke={chartNeutral.tooltipBorder} strokeWidth="1" opacity="0.97" />
-                <text x="12" y="19" fontSize="11" fill={chartNeutral.tooltipLabel} fontWeight="600">
-                  {new Date(tooltip.data.date).toLocaleDateString('id-ID', { month: 'short', day: 'numeric' })}
-                </text>
-                <circle cx="14" cy="36" r="3.5" fill={cashFlowTone.income.hex} />
-                <text x="24" y="40" fontSize="10" fill={chartNeutral.tooltipLabel}>Income</text>
-                <text x="148" y="40" textAnchor="end" fontSize="10" fill={chartNeutral.tooltipValue} fontWeight="600">
-                  {formatCurrency(tooltip.data.income)}
-                </text>
-                <circle cx="14" cy="54" r="3.5" fill={cashFlowTone.expense.hex} />
-                <text x="24" y="58" fontSize="10" fill={chartNeutral.tooltipLabel}>Expense</text>
-                <text x="148" y="58" textAnchor="end" fontSize="10" fill={chartNeutral.tooltipValue} fontWeight="600">
-                  {formatCurrency(tooltip.data.expense)}
-                </text>
-                <circle cx="14" cy="72" r="3.5" fill={cashFlowTone.net.hex} />
-                <text x="24" y="76" fontSize="10" fill={chartNeutral.tooltipLabel}>Net</text>
-                <text x="148" y="76" textAnchor="end" fontSize="10" fill={chartNeutral.tooltipValue} fontWeight="600">
-                  {formatCurrency(tooltip.data.net)}
-                </text>
-                </g>
-              </>
-            )}
-          </g>
+          {/*
+            Hit areas span the full plot height so the pointer only has to be in
+            the right column, rather than on top of a 4px marker.
+          */}
+          {series.map((item, index) => {
+            const center = PADDING.left + index * xScale;
+            const left = Math.max(PADDING.left, center - xScale / 2);
+            const right = Math.min(SVG_WIDTH - PADDING.right, center + xScale / 2);
+
+            return (
+              <rect
+                key={`hit-${item.date}`}
+                x={left}
+                y={PADDING.top}
+                width={right - left}
+                height={PLOT_HEIGHT}
+                fill="transparent"
+                onMouseEnter={() => setHoveredIndex(index)}
+              />
+            );
+          })}
+
+          {hovered && tooltipPosition && (
+            <g
+              className="pointer-events-none"
+              transform={`translate(${tooltipPosition.x}, ${tooltipPosition.y})`}
+            >
+              <rect
+                x="0"
+                y="0"
+                width={TOOLTIP_WIDTH}
+                height={TOOLTIP_HEIGHT}
+                rx="8"
+                fill={chartNeutral.tooltipSurface}
+                stroke={chartNeutral.tooltipBorder}
+                strokeWidth="1"
+                opacity="0.97"
+              />
+              <text x="12" y="19" fontSize="11" fill={chartNeutral.tooltipLabel} fontWeight="600">
+                {formatAxisDate(hovered.date)}
+              </text>
+              <circle cx="14" cy="36" r="3.5" fill={cashFlowTone.income.hex} />
+              <text x="24" y="40" fontSize="10" fill={chartNeutral.tooltipLabel}>
+                Income
+              </text>
+              <text
+                x="148"
+                y="40"
+                textAnchor="end"
+                fontSize="10"
+                fill={chartNeutral.tooltipValue}
+                fontWeight="600"
+              >
+                {formatCurrency(hovered.income)}
+              </text>
+              <circle cx="14" cy="54" r="3.5" fill={cashFlowTone.expense.hex} />
+              <text x="24" y="58" fontSize="10" fill={chartNeutral.tooltipLabel}>
+                Expense
+              </text>
+              <text
+                x="148"
+                y="58"
+                textAnchor="end"
+                fontSize="10"
+                fill={chartNeutral.tooltipValue}
+                fontWeight="600"
+              >
+                {formatCurrency(hovered.expense)}
+              </text>
+              <circle cx="14" cy="72" r="3.5" fill={cashFlowTone.net.hex} />
+              <text x="24" y="76" fontSize="10" fill={chartNeutral.tooltipLabel}>
+                Net
+              </text>
+              <text
+                x="148"
+                y="76"
+                textAnchor="end"
+                fontSize="10"
+                fill={chartNeutral.tooltipValue}
+                fontWeight="600"
+              >
+                {formatCurrency(hovered.net)}
+              </text>
+            </g>
+          )}
         </svg>
       </div>
 
-      {/* Legend. Swatches mirror the actual marks on the canvas: income is a solid
-          line, expense is dashed. `net` is intentionally absent - it is not plotted,
-          so a legend entry for it would point at nothing. */}
-      <div className="flex shrink-0 justify-center gap-5 py-1 text-xs">
+      {/* Ring swatch on the series' own line style: the ring matches the hover
+          marker and the dash keeps income and expense distinguishable. */}
+      <div className="flex shrink-0 justify-center gap-6 py-1 text-xs">
         <div className="flex items-center gap-2">
-          <svg width="14" height="2" aria-hidden="true">
-            <line x1="0" y1="1" x2="14" y2="1" stroke={cashFlowTone.income.hex} strokeWidth="2" />
+          <svg width="26" height="10" aria-hidden="true">
+            <line x1="0" y1="5" x2="26" y2="5" stroke={cashFlowTone.income.hex} strokeWidth="2.5" />
+            <circle
+              cx="13"
+              cy="5"
+              r="3.5"
+              fill="#ffffff"
+              stroke={cashFlowTone.income.hex}
+              strokeWidth="2"
+            />
           </svg>
           <span className="text-[#6B7280]">Income</span>
         </div>
         <div className="flex items-center gap-2">
-          <svg width="14" height="2" aria-hidden="true">
+          <svg width="26" height="10" aria-hidden="true">
             <line
               x1="0"
-              y1="1"
-              x2="14"
-              y2="1"
+              y1="5"
+              x2="26"
+              y2="5"
+              stroke={cashFlowTone.expense.hex}
+              strokeWidth="2.5"
+              strokeDasharray="6,4"
+            />
+            <circle
+              cx="13"
+              cy="5"
+              r="3.5"
+              fill="#ffffff"
               stroke={cashFlowTone.expense.hex}
               strokeWidth="2"
-              strokeDasharray="4,3"
             />
           </svg>
           <span className="text-[#6B7280]">Expense</span>

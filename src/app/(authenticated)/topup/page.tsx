@@ -44,17 +44,12 @@ export default function TopUpPage() {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    if (!localStorage.getItem("accessToken")) {
-      router.replace("/");
-      return;
-    }
-
     dashboardApi
       .getWallet()
       .then(setWallet)
       .catch((err) => setError(err instanceof Error ? err.message : "Unable to load wallet"))
       .finally(() => setLoading(false));
-  }, [router]);
+  }, []);
 
   const handleAmountChange = (value: number) => {
     setAmount(Number.isFinite(value) ? value : 0);
@@ -92,11 +87,36 @@ export default function TopUpPage() {
     return <div className="flex flex-1 items-center justify-center bg-white text-slate-700">Loading wallet...</div>;
   }
 
+  /**
+   * Without the wallet the balance panel would read Rp0, which is a real figure
+   * a user could act on, so the failure is surfaced instead.
+   */
+  if (!wallet) {
+    return (
+      <div className="flex flex-1 flex-col items-center justify-center gap-4 bg-white px-6 text-center">
+        <div>
+          <h1 className="text-lg font-semibold text-[#0e2a5c]">Top up is unavailable</h1>
+          <p role="alert" className="mt-2 max-w-sm text-sm text-slate-600">
+            {error || "We could not load your wallet."}
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <Button type="button" onClick={() => window.location.reload()} className="h-11 rounded-full px-5">
+            Try again
+          </Button>
+          <Button type="button" variant="ghost" onClick={() => router.push("/dashboard")} className="h-11 rounded-full px-5 text-slate-700">
+            Back to dashboard
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   const sliderAmount = Math.min(Math.max(amount, MINIMUM_TOP_UP), MAXIMUM_TOP_UP);
   const sliderProgress = ((sliderAmount - MINIMUM_TOP_UP) / (MAXIMUM_TOP_UP - MINIMUM_TOP_UP)) * 100;
 
   return (
-    <div className="flex flex-1 flex-col bg-[#ededed] grayscale lg:h-[calc(100dvh-4rem)] lg:min-h-0 lg:overflow-hidden">
+    <div className="flex flex-1 flex-col bg-[#ededed] lg:h-[calc(100dvh-4rem)] lg:min-h-0 lg:overflow-hidden">
       <main className="min-w-0 flex-1 bg-white px-4 py-4 sm:px-6 sm:py-5 lg:min-h-0 lg:overflow-hidden lg:py-4">
         <div className="mx-auto grid h-full w-full max-w-[1400px] gap-6 lg:grid-cols-[minmax(0,0.78fr)_minmax(540px,1.12fr)] lg:items-center lg:gap-10 xl:gap-14">
           <section className="min-w-0 lg:flex lg:flex-col lg:py-1">
@@ -177,8 +197,8 @@ export default function TopUpPage() {
                 <div className="absolute -right-16 top-0 h-40 w-40 rounded-full bg-white/10" aria-hidden="true" />
                 <p className="relative text-sm font-medium text-blue-100">Available balance</p>
                 <div className="relative mt-1.5 flex items-baseline gap-2 lg:mt-1">
-                  <p className="text-3xl font-bold tracking-tight sm:text-4xl lg:text-3xl">{formatCurrency(wallet?.balance ?? 0)}</p>
-                  <p className="text-sm font-medium text-blue-100">{wallet?.currency ?? "IDR"}</p>
+                  <p className="text-3xl font-bold tracking-tight sm:text-4xl lg:text-3xl">{formatCurrency(wallet.balance)}</p>
+                  <p className="text-sm font-medium text-blue-100">{wallet.currency}</p>
                 </div>
               </div>
 

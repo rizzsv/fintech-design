@@ -86,7 +86,7 @@ export function CheckEmailView() {
         type="button"
         onClick={() => resend.mutate()}
         disabled={resend.isPending}
-        className="mt-6 inline-flex items-center gap-2 text-[13px] font-medium text-foreground transition-opacity duration-150 hover:opacity-70 disabled:cursor-not-allowed disabled:opacity-50 md:mt-7"
+        className="mt-4 inline-flex items-center gap-2 rounded-full px-4 py-2 text-[13px] font-medium text-foreground transition-opacity duration-150 hover:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 disabled:cursor-not-allowed disabled:opacity-50 md:mt-5"
       >
         {resend.isPending ? (
           <Loader2 className="h-[15px] w-[15px] animate-spin" />

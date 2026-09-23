@@ -122,13 +122,6 @@ export default function DashboardPage() {
   const [entranceDone, setEntranceDone] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem('accessToken');
-
-    if (!token) {
-      router.replace('/');
-      return;
-    }
-
     const fetchDashboard = async () => {
       try {
         const data = await dashboardApi.getDashboard();
@@ -141,7 +134,7 @@ export default function DashboardPage() {
     };
 
     fetchDashboard();
-  }, [router]);
+  }, []);
 
   const containerVariants = {
     hidden: { opacity: 0 },
