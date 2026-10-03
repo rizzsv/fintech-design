@@ -95,6 +95,7 @@ export interface PendingActivity {
 
 export interface WalletResponse {
   id: string;
+  accountNumber: string;
   currency: string;
   balance: string | number;
   version: number;
@@ -251,6 +252,7 @@ export interface MeResponse {
   lastName: string;
   email: string;
   phoneNumber?: string;
+  isDemo?: boolean;
   account: {
     isActive: boolean;
     isEmailVerified: boolean;
@@ -286,3 +288,24 @@ export interface NotificationPreferences {
 }
 
 export type NotificationChannel = keyof NotificationPreferences;
+
+/** Notification status from backend */
+export type NotificationStatus = "PENDING" | "PROCESSING" | "SENT" | "FAILED" | "READ" | "SKIPPED";
+
+/** Notification from backend */
+export interface Notification {
+  id: string;
+  userId: string;
+  type: string;
+  channel: string;
+  status: NotificationStatus;
+  title: string;
+  message: string;
+  resource: string | null;
+  entityId: string | null;
+  isRead: boolean;
+  readAt: string | null;
+  sentAt: string | null;
+  createdAt: string;
+  metadata?: Record<string, unknown>;
+}

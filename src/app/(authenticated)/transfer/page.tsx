@@ -17,8 +17,8 @@ function formatCurrency(value: number | string) {
   }).format(Number(value) || 0);
 }
 
-function isUuid(value: string) {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+function isValidAccountNumber(value: string) {
+  return /^[1-9][0-9]{9}$/.test(value);
 }
 
 export default function TransferPage() {
@@ -93,8 +93,8 @@ export default function TransferPage() {
     event.preventDefault();
     setError("");
 
-    if (!isUuid(recipient.trim())) {
-      setError("Enter a valid recipient wallet ID.");
+    if (!isValidAccountNumber(recipient.trim())) {
+      setError("Enter a valid 10-digit account number.");
       return;
     }
     if (!Number.isSafeInteger(parsedAmount) || parsedAmount <= 0) {
@@ -132,7 +132,7 @@ export default function TransferPage() {
   const guideSteps = [
     {
       title: "Choose a recipient",
-      description: "Enter the recipient wallet ID carefully. Transfers are sent to the wallet you specify.",
+      description: "Enter the recipient's 10-digit account number carefully. Transfers are sent to the account you specify.",
     },
     {
       title: "Set the amount",
@@ -200,19 +200,19 @@ export default function TransferPage() {
                   })}
                 </ol>
 
-                <div className="mt-7 rounded-[24px] bg-[#0e2a5c] p-5 text-white shadow-sm lg:mt-6 lg:p-4">
-                  <p className="text-sm font-medium text-blue-100">Available balance</p>
+                <div className="mt-7 rounded-[24px] bg-black p-5 text-white shadow-sm lg:mt-6 lg:p-4">
+                  <p className="text-sm font-medium text-slate-300">Available balance</p>
                   <p className="mt-1 text-2xl font-bold tracking-tight">{formatCurrency(wallet.balance)}</p>
-                  <p className="mt-2 text-sm leading-5 text-blue-100">The final transfer checks remain in place when you submit.</p>
+                  <p className="mt-2 text-sm leading-5 text-slate-300">The final transfer checks remain in place when you submit.</p>
                 </div>
             </div>
           </section>
 
           <section aria-labelledby="transfer-form-title" className="min-w-0 overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_16px_40px_rgba(17,44,100,0.12)] lg:justify-self-end lg:w-full lg:max-w-[680px]">
-                <div className="bg-[#0e2a5c] px-6 py-7 text-white sm:px-9 sm:py-8 lg:px-6 lg:py-3">
-                  <p className="text-sm font-medium text-blue-100">Secure wallet transfer</p>
+                <div className="bg-black px-6 py-7 text-white sm:px-9 sm:py-8 lg:px-6 lg:py-3">
+                  <p className="text-sm font-medium text-slate-300">Secure wallet transfer</p>
                   <h2 id="transfer-form-title" className="mt-1 text-xl font-bold">Send money</h2>
-                  <p className="mt-1 text-sm leading-5 text-blue-100">Complete the details below to continue.</p>
+                  <p className="mt-1 text-sm leading-5 text-slate-300">Complete the details below to continue.</p>
                 </div>
 
                 <div className="px-5 py-7 sm:px-9 sm:py-9 lg:px-6 lg:py-4">
@@ -235,16 +235,16 @@ export default function TransferPage() {
                   ) : (
                     <form onSubmit={handleSubmit} className="space-y-6 lg:space-y-3.5">
                       <div>
-                        <label htmlFor="recipient-wallet" className="mb-2 block text-sm font-semibold text-[#0e2a5c] lg:mb-1.5">Recipient wallet ID</label>
+                        <label htmlFor="recipient-wallet" className="mb-2 block text-sm font-semibold text-[#0e2a5c] lg:mb-1.5">Recipient Account Number</label>
                         <Input
                           id="recipient-wallet"
                           value={recipient}
                           onChange={(event) => { setRecipient(event.target.value); setError(""); }}
-                          placeholder="5a044e27-ae12-4bf7-ab37-871a8ec1ad68"
+                          placeholder="1234567890"
                           className="h-12 rounded-xl bg-white px-4 font-mono text-sm shadow-none"
                           aria-describedby="recipient-help"
                         />
-                        <p id="recipient-help" className="mt-2 text-xs leading-5 text-slate-500 lg:mt-1 lg:leading-4">Use the recipient&apos;s wallet ID.</p>
+                        <p id="recipient-help" className="mt-2 text-xs leading-5 text-slate-500 lg:mt-1 lg:leading-4">Enter the recipient&apos;s 10-digit account number.</p>
                       </div>
 
                       <div>

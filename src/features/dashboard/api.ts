@@ -2,6 +2,7 @@ import { API_BASE_URL } from "@/api/client";
 import type {
   CreateWithdrawalRequest,
   KycDocumentResponse,
+  Notification,
   NotificationPreferences,
   TopUpPaymentResponse,
   TransactionDetail,
@@ -119,11 +120,11 @@ export const dashboardApi = {
     return payload.data;
   },
 
-  createTransfer: async (toWalletId: string, amount: number, description?: string): Promise<TransferResponse> => {
+  createTransfer: async (recipientAccountNumber: string, amount: number, description?: string): Promise<TransferResponse> => {
     const response = await fetch(`${API_BASE_URL}/transaction/transfer`, {
       method: "POST",
       headers: { ...authHeaders(), "Idempotency-Key": crypto.randomUUID() },
-      body: JSON.stringify({ toWalletId, amount, description }),
+      body: JSON.stringify({ recipientAccountNumber, amount, description }),
     });
     const payload = await response.json();
 
@@ -204,17 +205,73 @@ export const dashboardApi = {
   },
 
   updateNotificationPreferences: async (
-    patch: Partial<NotificationPreferences>,
-  ): Promise<NotificationPreferences> => {
-    const response = await fetch(`${API_BASE_URL}/notifications/preferences`, {
-      method: "PATCH",
-      headers: authHeaders(),
-      body: JSON.stringify(patch),
-    });
-    const payload = await response.json();
+      patch: Partial<NotificationPreferences>,
+    ): Promise<NotificationPreferences> => {
+      const response = await fetch(`${API_BASE_URL}/notifications/preferences`, {
+        method: "PATCH",
+        headers: authHeaders(),
+        body: JSON.stringify(patch),
+      });
+      const payload = await response.json();
 
-    if (!response.ok) throw new Error(payload?.message || "Failed to update notification preferences");
+      if (!response.ok) throw new Error(payload?.message || "Failed to update notification preferences");
 
-    return payload.data;
-  },
-};
+      return payload.data;
+    },
+
+    getNotifications: async (options?: { limit?: number; offset?: number; unreadOnly?: boolean }): Promise<Notification[]> => {
+      const params = new URLSearchParams();
+      if (options?.limit) params.set("limit", String(options.limit));
+      if (options?.offset) params.set("offset", String(options.offset));
+      if (options?.unreadOnly) params.set("unreadOnly", "true");
+
+      const queryString = params.toString();
+      const url = `${API_BASE_URL}/notifications${queryString ? `?${queryString}` : ""}`;
+
+      const response = await fetch(url, {
+        method: "GET",
+        headers: authHeaders(),
+      });
+      const payload = await response.json();
+
+      if (!response.ok) throw new Error(payload?.message || "Failed to fetch notifications");
+
+      return payload.data;
+    },
+
+    getUnreadNotificationCount: async (): Promise<number> => {
+      const response = await fetch(`${API_BASE_URL}/notifications/unread-count`, {
+        method: "GET",
+        headers: authHeaders(),
+      });
+      const payload = await response.json();
+
+      if (!response.ok) throw new Error(payload?.message || "Failed to fetch unread count");
+
+      return payload.data.count;
+    },
+
+    markNotificationAsRead: async (id: string): Promise<Notification> => {
+      const response = await fetch(`${API_BASE_URL}/notifications/${id}/read`, {
+        method: "PATCH",
+        headers: authHeaders(),
+      });
+      const payload = await response.json();
+
+      if (!response.ok) throw new Error(payload?.message || "Failed to mark notification as read");
+
+      return payload.data;
+    },
+
+    markAllNotificationsAsRead: async (): Promise<{ count: number }> => {
+      const response = await fetch(`${API_BASE_URL}/notifications/read-all`, {
+        method: "PATCH",
+        headers: authHeaders(),
+      });
+      const payload = await response.json();
+
+      if (!response.ok) throw new Error(payload?.message || "Failed to mark all notifications as read");
+
+      return payload.data;
+    },
+  };

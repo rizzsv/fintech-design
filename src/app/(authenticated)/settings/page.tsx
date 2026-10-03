@@ -422,6 +422,28 @@ export default function SettingsPage() {
                       <DetailRow label="Full name" value={fullName} />
                       <DetailRow label="Email address" value={profile?.email ?? "Not provided"} />
                       <DetailRow label="Phone number" value={profile?.phoneNumber || "Not provided"} />
+                      <DetailRow 
+                        label="Account Number" 
+                        value={
+                          wallet?.accountNumber ? (
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono text-base font-semibold text-slate-800">{wallet.accountNumber}</span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(wallet.accountNumber);
+                                }}
+                                className="rounded-lg px-2 py-1 text-xs font-medium text-sky-600 transition-colors hover:bg-sky-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+                                aria-label="Copy account number"
+                              >
+                                Copy
+                              </button>
+                            </div>
+                          ) : (
+                            "Not available"
+                          )
+                        } 
+                      />
                     </dl>
                   </ContentCard>
                   <ContentCard title="Verification" description="Current verification information from your profile.">

@@ -16,6 +16,14 @@ export interface RegisterResponse {
   email: string;
 }
 
+export interface VerifyEmailOtpResponse {
+  accessToken: string;
+  refreshToken: string;
+  userId: string;
+  email: string;
+  isEmailVerified: boolean;
+}
+
 export interface VerifyEmailResponse {
   userId: string;
   email: string;
@@ -73,5 +81,11 @@ export const authApi = {
   register: (payload: RegisterPayload) => request<RegisterResponse>("/auth/register", payload),
   logout: (refreshToken: string) => request<null>("/auth/logout", { refreshToken }),
   verifyEmail: (token: string) => request<VerifyEmailResponse>("/auth/verify-email", { token }),
+  verifyEmailOtp: (email: string, otp: string) => request<VerifyEmailOtpResponse>("/auth/verify-email-otp", { email, otp }),
+  resendEmailVerificationOtp: (email: string) => request<{ message: string; expiresAt: string }>("/auth/resend-email-verification-otp", { email }),
   resendVerification: (email: string) => request<null>("/auth/resend-verification", { email }),
+  forgotPassword: (email: string) => request<{ message: string; expiresAt?: string }>("/auth/forgot-password", { email }),
+  verifyPasswordResetOtp: (email: string, otp: string) => request<{ verified: boolean; userId: string; email: string }>("/auth/verify-password-reset-otp", { email, otp }),
+  resetPassword: (email: string, newPassword: string) => request<{ message: string }>("/auth/reset-password", { email, newPassword }),
+  createDemoAccount: () => request<LoginResponse>("/auth/demo", undefined),
 };

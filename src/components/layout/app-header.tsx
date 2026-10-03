@@ -3,14 +3,15 @@
 import { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Bell, LogOut, X } from 'lucide-react';
+import { LogOut, X } from 'lucide-react';
 
 import { authApi } from '@/features/auth/api';
 import { dashboardApi } from '@/features/dashboard/api';
-import type { MeResponse } from '@/features/dashboard/types';
+import type { MeResponse, WalletResponse } from '@/features/dashboard/types';
 import { useAuthStore } from '@/store/auth-store';
 
 import { AppNav } from './app-nav';
+import { NotificationDropdown } from './notification-dropdown';
 
 /**
  * The single header for every authenticated route. It is rendered once by
@@ -23,9 +24,11 @@ export function AppHeader() {
   const router = useRouter();
   const pathname = usePathname();
   const [profile, setProfile] = useState<MeResponse | null>(null);
+  const [wallet, setWallet] = useState<WalletResponse | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
   const [profileError, setProfileError] = useState('');
   const [logoutLoading, setLogoutLoading] = useState(false);
+  const [copiedAccountNumber, setCopiedAccountNumber] = useState(false);
   const refreshToken = useAuthStore((state) => state.refreshToken);
   const clearTokens = useAuthStore((state) => state.clearTokens);
 
@@ -41,11 +44,17 @@ export function AppHeader() {
     // Pages own the redirect for unauthenticated visitors; the header only skips
     // a request it knows would fail.
     const load = async () =>
-      localStorage.getItem('accessToken') ? dashboardApi.getMe() : null;
+      localStorage.getItem('accessToken') 
+        ? Promise.all([dashboardApi.getMe(), dashboardApi.getWallet()]) 
+        : null;
 
     load()
-      .then((response) => {
-        if (active && response) setProfile(response);
+      .then((responses) => {
+        if (active && responses) {
+          const [profileResponse, walletResponse] = responses;
+          setProfile(profileResponse);
+          setWallet(walletResponse);
+        }
       })
       .catch((error: unknown) => {
         if (active) {
@@ -63,6 +72,15 @@ export function AppHeader() {
 
   const userName = `${profile?.firstName ?? ''} ${profile?.lastName ?? ''}`.trim() || 'User';
   const userInitial = (userName.charAt(0) || 'U').toUpperCase();
+  const isDemo = profile?.isDemo ?? false;
+
+  const handleCopyAccountNumber = () => {
+    if (wallet?.accountNumber) {
+      navigator.clipboard.writeText(wallet.accountNumber);
+      setCopiedAccountNumber(true);
+      setTimeout(() => setCopiedAccountNumber(false), 2000);
+    }
+  };
 
   const handleLogout = async () => {
     if (logoutLoading) {
@@ -94,15 +112,17 @@ export function AppHeader() {
         </div>
 
         <div className="flex shrink-0 items-center gap-3">
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            type="button"
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
-            aria-label="Notifications"
-          >
-            <Bell className="h-4 w-4" />
-          </motion.button>
+          {isDemo && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="rounded-full bg-amber-100 px-3 py-1.5 text-xs font-semibold text-amber-800 border border-amber-200"
+            >
+              DEMO MODE
+            </motion.div>
+          )}
+          
+          <NotificationDropdown />
 
           <div className="relative">
             <motion.button
@@ -128,14 +148,14 @@ export function AppHeader() {
                   transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                   className="absolute right-0 top-[calc(100%+12px)] z-20 w-[min(360px,calc(100vw-2rem))] overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-[0_20px_50px_rgba(17,44,100,0.18)]"
                 >
-                  <div className="flex items-start justify-between bg-[#0e2a5c] p-5 text-white">
+                  <div className="flex items-start justify-between bg-black p-5 text-white">
                     <div className="flex items-center gap-3">
                       <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#f8e7bf] text-lg font-bold text-[#0e2a5c]">
                         {userInitial}
                       </div>
                       <div>
                         <p className="font-semibold">{userName}</p>
-                        <p className="text-xs text-blue-100">Personal information</p>
+                        <p className="text-xs text-slate-300">Personal information</p>
                       </div>
                     </div>
                     <motion.button
@@ -144,7 +164,7 @@ export function AppHeader() {
                       type="button"
                       onClick={() => setOpenedOnPath(null)}
                       aria-label="Close profile information"
-                      className="rounded-full p-1 text-blue-100 hover:bg-white/10 hover:text-white"
+                      className="rounded-full p-1 text-slate-300 hover:bg-white/10 hover:text-white"
                     >
                       <X className="h-4 w-4" />
                     </motion.button>
@@ -169,6 +189,24 @@ export function AppHeader() {
                         <div className="text-sm text-slate-600">
                           <span className="font-semibold">Phone: </span>
                           {profile.phoneNumber || 'Not provided'}
+                        </div>
+                        <div className="text-sm text-slate-600">
+                          <span className="font-semibold">Account Number: </span>
+                          {wallet?.accountNumber ? (
+                            <span className="inline-flex items-center gap-2">
+                              <span className="font-mono font-semibold text-slate-800">{wallet.accountNumber}</span>
+                              <button
+                                type="button"
+                                onClick={handleCopyAccountNumber}
+                                className="rounded-lg px-2 py-0.5 text-xs font-medium text-sky-600 transition-colors hover:bg-sky-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+                                aria-label="Copy account number"
+                              >
+                                {copiedAccountNumber ? 'Copied!' : 'Copy'}
+                              </button>
+                            </span>
+                          ) : (
+                            'Loading...'
+                          )}
                         </div>
                       </div>
                       <div className="grid grid-cols-2 gap-3 border-t border-slate-100 pt-4">
