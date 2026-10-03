@@ -12,17 +12,23 @@ import { useForm } from "react-hook-form";
 import { AnimatedNetwork } from "@/components/auth/animated-network";
 import { AuthField } from "@/components/ui/auth-field";
 import { authApi, ApiError } from "@/features/auth/api";
+import { cn } from "@/lib/utils";
 import { loginSchema, registerSchema } from "@/features/auth/schemas";
-import { cn } from "@/utils/cn";
+import { OtpInput } from "./otp-input";
 import { useAuthStore } from "@/store/auth-store";
 
 const socialButtons = [
   { label: "Google", bg: "bg-white", tone: "text-[#000000]" },
 ];
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000/api/v1";
+
 export function AuthShell() {
   const router = useRouter();
   const [isLogin, setIsLogin] = useState(true);
+  const [showOtpStep, setShowOtpStep] = useState(false);
+  const [otpEmail, setOtpEmail] = useState("");
+  const [otpPurpose, setOtpPurpose] = useState<"registration">("registration");
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [submitMessage, setSubmitMessage] = useState("");
@@ -54,6 +60,11 @@ export function AuthShell() {
 
   const mutation = useMutation({
     mutationFn: async (payload: Record<string, unknown>) => {
+      // Demo mode
+      if (payload.__demoMode) {
+        return authApi.createDemoAccount();
+      }
+
       if (isLogin) {
         return authApi.login({
           email: String(payload.email),
@@ -74,7 +85,8 @@ export function AuthShell() {
       });
     },
     onSuccess: (data) => {
-      if (isLogin && "accessToken" in data && "refreshToken" in data) {
+      // Demo mode or login success → tokens returned directly
+      if ("accessToken" in data && "refreshToken" in data && data.accessToken && data.refreshToken) {
         setTokens(data.accessToken, data.refreshToken);
         setSubmitMessage("Login successful");
         setSubmitError("");
@@ -82,9 +94,18 @@ export function AuthShell() {
         return;
       }
 
+      // Registration success → show OTP step
+      if (!isLogin && "email" in data) {
+        setOtpEmail(data.email);
+        setOtpPurpose("registration");
+        setShowOtpStep(true);
+        setSubmitError("");
+        setSubmitMessage("");
+        return;
+      }
+
       setSubmitError("");
       setSubmitMessage("");
-      router.push(`/check-email?email=${encodeURIComponent("email" in data ? data.email : "")}`);
     },
     onError: (error: Error) => {
       if (error instanceof ApiError && error.code === "EMAIL_NOT_VERIFIED") {
@@ -103,6 +124,68 @@ export function AuthShell() {
     setSubmitMessage("");
     mutation.mutate(values);
   });
+
+  const [otpValue, setOtpValue] = useState("");
+  const [otpError, setOtpError] = useState("");
+  const [resendCooldown, setResendCooldown] = useState(0);
+
+  const verifyOtpMutation = useMutation({
+    mutationFn: (otp: string) => {
+      return authApi.verifyEmailOtp(otpEmail, otp);
+    },
+    onSuccess: (data) => {
+      if ("accessToken" in data && "refreshToken" in data) {
+        setTokens(data.accessToken!, data.refreshToken!);
+        router.push("/dashboard");
+      }
+    },
+    onError: (error: Error) => {
+      setOtpError(error.message || "Invalid OTP");
+    },
+  });
+
+  const resendOtpMutation = useMutation({
+    mutationFn: () => {
+      return authApi.resendEmailVerificationOtp(otpEmail);
+    },
+    onSuccess: () => {
+      setResendCooldown(60);
+      setOtpError("");
+    },
+    onError: (error: Error) => {
+      setOtpError(error.message || "Failed to resend OTP");
+    },
+  });
+
+  useEffect(() => {
+    if (resendCooldown > 0) {
+      const timer = setTimeout(() => setResendCooldown(resendCooldown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [resendCooldown]);
+
+  const handleOtpComplete = (otp: string) => {
+    setOtpValue(otp);
+    setOtpError("");
+    verifyOtpMutation.mutate(otp);
+  };
+
+  const handleResendOtp = () => {
+    if (resendCooldown === 0) {
+      resendOtpMutation.mutate();
+    }
+  };
+
+  const maskEmail = (email: string) => {
+    const [local, domain] = email.split("@");
+    if (local.length <= 2) return email;
+    return `${local[0]}${"*".repeat(local.length - 2)}${local[local.length - 1]}@${domain}`;
+  };
+
+  const handleGoogleLogin = () => {
+    // Redirect to backend Google OAuth endpoint
+    window.location.href = `${API_BASE_URL}/auth/google`;
+  };
 
   const formErrors = form.formState.errors;
 
@@ -132,8 +215,59 @@ export function AuthShell() {
           </div>
         </div>
 
-        {/* Right Panel - Form */}
+        {/* Right Panel - Form or OTP */}
         <div className="flex w-full items-center justify-center bg-white px-6 py-12 sm:px-10 md:min-h-[680px] md:w-1/2 md:px-12 md:py-16">
+          {showOtpStep ? (
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.3 }}
+              className="w-full max-w-[430px]"
+            >
+              <h2 className="text-2xl font-bold leading-tight tracking-tight text-foreground md:text-[28px]">
+                Verify your email
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground md:text-base">
+                Code sent to
+              </p>
+              <p className="mt-1 text-base font-medium text-foreground">
+                {maskEmail(otpEmail)}
+              </p>
+
+              <div className="mt-8">
+                <OtpInput
+                  onComplete={handleOtpComplete}
+                  error={otpError}
+                  loading={verifyOtpMutation.isPending}
+                  disabled={verifyOtpMutation.isPending}
+                />
+              </div>
+
+              <div className="mt-6 text-center text-sm text-muted-foreground">
+                <p>Didn't receive it?</p>
+                <button
+                  type="button"
+                  onClick={handleResendOtp}
+                  disabled={resendCooldown > 0 || resendOtpMutation.isPending}
+                  className="mt-2 font-semibold text-primary transition-colors hover:text-primary/80 hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {resendCooldown > 0 ? `Resend code in ${resendCooldown}s` : resendOtpMutation.isPending ? "Sending..." : "Resend code"}
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setShowOtpStep(false);
+                  setOtpEmail("");
+                  setOtpError("");
+                }}
+                className="mt-6 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                ← Change email
+              </button>
+            </motion.div>
+          ) : (
           <motion.div
             key={isLogin ? "login" : "register"}
             initial={{ opacity: 0, x: 20 }}
@@ -285,6 +419,7 @@ export function AuthShell() {
                   </label>
                   <button
                     type="button"
+                    onClick={() => router.push("/forgot-password")}
                     className="text-sm font-semibold text-primary transition-colors hover:text-primary/80 hover:underline"
                   >
                     Forgot password?
@@ -342,6 +477,36 @@ export function AuthShell() {
                   </>
                 )}
               </motion.button>
+
+              {isLogin && (
+                <motion.button
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.4 }}
+                  type="button"
+                  disabled={mutation.isPending}
+                  onClick={() => {
+                    setSubmitError("");
+                    setSubmitMessage("");
+                    mutation.mutate({ __demoMode: true } as any);
+                  }}
+                  whileHover={{ scale: mutation.isPending ? 1 : 1.02 }}
+                  whileTap={{ scale: mutation.isPending ? 1 : 0.96 }}
+                  className="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-xl border-2 border-primary bg-white text-sm font-semibold text-primary shadow-sm transition-all duration-200 hover:bg-primary/5 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-none md:text-base"
+                >
+                  {mutation.isPending ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Creating demo...
+                    </>
+                  ) : (
+                    <>
+                      Try Demo
+                      <ArrowRight className="h-4 w-4" />
+                    </>
+                  )}
+                </motion.button>
+              )}
             </form>
 
             <motion.div
@@ -365,6 +530,7 @@ export function AuthShell() {
                     key={label}
                     type="button"
                     aria-label={label}
+                    onClick={handleGoogleLogin}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     transition={{ duration: 0.15 }}
@@ -403,6 +569,7 @@ export function AuthShell() {
               </button>
             </motion.p>
           </motion.div>
+          )}
         </div>
       </motion.div>
     </div>

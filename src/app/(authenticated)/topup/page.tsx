@@ -193,12 +193,12 @@ export default function TopUpPage() {
 
           <section className="min-w-0 lg:justify-self-end lg:w-full lg:max-w-[680px]">
             <div className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_16px_40px_rgba(17,44,100,0.12)]">
-              <div className="relative overflow-hidden bg-[#0e2a5c] px-6 pb-16 pt-6 text-white sm:px-8 sm:pt-7 lg:px-6 lg:pb-12 lg:pt-5">
+              <div className="relative overflow-hidden bg-black px-6 pb-16 pt-6 text-white sm:px-8 sm:pt-7 lg:px-6 lg:pb-12 lg:pt-5">
                 <div className="absolute -right-16 top-0 h-40 w-40 rounded-full bg-white/10" aria-hidden="true" />
-                <p className="relative text-sm font-medium text-blue-100">Available balance</p>
+                <p className="relative text-sm font-medium text-slate-300">Available balance</p>
                 <div className="relative mt-1.5 flex items-baseline gap-2 lg:mt-1">
                   <p className="text-3xl font-bold tracking-tight sm:text-4xl lg:text-3xl">{formatCurrency(wallet.balance)}</p>
-                  <p className="text-sm font-medium text-blue-100">{wallet.currency}</p>
+                  <p className="text-sm font-medium text-slate-300">{wallet.currency}</p>
                 </div>
               </div>
 

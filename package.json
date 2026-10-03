@@ -6,7 +6,7 @@
     "node": ">=20.19.0 <21 || >=22.0.0 <23"
   },
   "scripts": {
-    "dev": "npx -y node@20 ./node_modules/next/dist/bin/next dev -p 3002",
+    "dev": "npx -y node@20 ./node_modules/next/dist/bin/next dev -p 3002 -H 0.0.0.0",
     "build": "npx -y node@20 ./node_modules/next/dist/bin/next build",
     "start": "npx -y node@20 ./node_modules/next/dist/bin/next start -p 3002",
     "lint": "npx -y node@20 ./node_modules/eslint/bin/eslint.js .",
@@ -49,5 +49,8 @@
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^4.1.11"
+  },
+  "optionalDependencies": {
+    "lightningcss-linux-x64-gnu": "^1.32.0"
   }
 }
