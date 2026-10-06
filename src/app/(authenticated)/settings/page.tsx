@@ -383,26 +383,26 @@ export default function SettingsPage() {
           </div>
 
           <div className="grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-8">
-            <aside className="lg:sticky lg:top-20 lg:self-start" aria-label="Settings sections">
-              <nav className="flex gap-1 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-sm lg:flex-col lg:overflow-visible">
-                <p className="hidden px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-[0.12em] text-slate-400 lg:block">Settings</p>
-                {settingsSections.map(({ id, label, icon: Icon }) => {
-                  const active = id === section;
-                  return (
-                    <button
-                      key={id}
-                      type="button"
-                      onClick={() => selectSection(id)}
-                      aria-current={active ? "page" : undefined}
-                      className={`flex h-10 shrink-0 items-center gap-2 rounded-xl px-3 text-left text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 ${active ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"}`}
-                    >
-                      <Icon className="h-4 w-4" />
-                      <span>{label}</span>
-                    </button>
-                  );
-                })}
-              </nav>
-            </aside>
+            <aside className="max-w-full overflow-hidden lg:sticky lg:top-20 lg:self-start" aria-label="Settings sections">
+                                      <nav className="-mx-4 flex gap-1 overflow-x-auto px-4 pb-2 sm:-mx-6 sm:px-6 lg:mx-0 lg:flex-col lg:overflow-visible lg:rounded-2xl lg:border lg:border-slate-200 lg:bg-white lg:p-2 lg:px-2 lg:shadow-sm">
+                            <p className="hidden px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-[0.12em] text-slate-400 lg:block">Settings</p>
+                            {settingsSections.map(({ id, label, icon: Icon }) => {
+                              const active = id === section;
+                              return (
+                                <button
+                                  key={id}
+                                  type="button"
+                                  onClick={() => selectSection(id)}
+                                  aria-current={active ? "page" : undefined}
+                                  className={`flex h-10 shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-3 text-left text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 lg:whitespace-normal ${active ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"}`}
+                                >
+                                  <Icon className="h-4 w-4 shrink-0" />
+                                  <span className="lg:truncate">{label}</span>
+                                </button>
+                              );
+                            })}
+                          </nav>
+                        </aside>
 
             <section className="min-w-0">
               <div className="mb-5 flex items-center gap-2 text-sm text-slate-500">

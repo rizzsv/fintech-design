@@ -159,13 +159,13 @@ export function NotificationDropdown() {
             />
 
             {/* Dropdown */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: -10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: -10 }}
-              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-              className="absolute right-0 top-[calc(100%+12px)] z-50 w-[min(400px,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl"
-            >
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                          animate={{ opacity: 1, scale: 1, y: 0 }}
+                          exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                          className="fixed inset-x-4 top-20 z-50 mx-auto max-w-[400px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl sm:absolute sm:inset-x-auto sm:right-0 sm:top-[calc(100%+12px)] sm:w-[min(400px,calc(100vw-2rem))]"
+                        >
               {/* Header */}
               <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
                 <h3 className="font-semibold text-slate-900">Notifications</h3>
