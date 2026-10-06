@@ -147,7 +147,7 @@ export default function TransferPage() {
   return (
     <div className="flex flex-1 flex-col bg-[#ededed] lg:h-[calc(100dvh-4rem)] lg:min-h-0 lg:overflow-hidden">
       <main className="min-w-0 flex-1 bg-white px-4 py-4 sm:px-6 sm:py-5 lg:min-h-0 lg:overflow-hidden lg:py-4">
-        <div className="mx-auto grid h-full w-full max-w-[1400px] gap-6 lg:grid-cols-[minmax(0,0.78fr)_minmax(540px,1.12fr)] lg:items-center lg:gap-10 xl:gap-14">
+        <div className="mx-auto grid h-full w-full max-w-[1400px] gap-6 lg:grid-cols-[minmax(0,0.78fr)_minmax(0,1.12fr)] lg:items-center lg:gap-10 xl:gap-14">
           <section aria-labelledby="transfer-guide-title" className="min-w-0 max-w-xl lg:flex lg:flex-col lg:py-1">
             <div className="mb-6 flex items-center gap-3 lg:mb-5">
               <Button

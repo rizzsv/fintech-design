@@ -106,21 +106,21 @@ export function AppHeader() {
       {/* Fixed h-16 keeps the bar exactly 64px tall at every breakpoint: the nav's
           horizontal scrollbar on narrow screens eats into the row instead of
           growing it. */}
-      <div className="mx-auto flex h-16 w-full max-w-[1600px] items-center justify-between gap-6 px-4 sm:px-6">
-        <div className="min-w-0 flex-1">
-          <AppNav />
-        </div>
+      <div className="mx-auto flex h-16 w-full max-w-[1600px] items-center justify-between gap-2 px-4 sm:gap-4 sm:px-6">
+              <div className="flex min-w-0 flex-1 items-center">
+                <AppNav />
+              </div>
 
-        <div className="flex shrink-0 items-center gap-3">
-          {isDemo && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="rounded-full bg-amber-100 px-3 py-1.5 text-xs font-semibold text-amber-800 border border-amber-200"
-            >
-              DEMO MODE
-            </motion.div>
-          )}
+              <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+                {isDemo && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="hidden rounded-full border border-amber-200 bg-amber-100 px-2 py-1 text-[10px] font-semibold text-amber-800 xs:block sm:px-3 sm:py-1.5 sm:text-xs"
+                  >
+                    DEMO
+                  </motion.div>
+                )}
           
           <NotificationDropdown />
 
